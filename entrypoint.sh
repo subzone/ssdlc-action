@@ -36,8 +36,8 @@ if [[ -n "${LICENSE_KEY:-}" ]]; then
     --allow-legacy-prefix "true" \
     2>/dev/null || echo '{"valid":false,"tier":"free","reason":"validation_error"}')
 
-  TIER=$(echo "${LICENSE_VALIDATION}" | jq -r '.tier // "free"')
-  LICENSE_STATUS=$(echo "${LICENSE_VALIDATION}" | jq -r '.reason // "unknown"')
+  TIER=$(echo "${LICENSE_VALIDATION}" | jq -r '.tier // "free"' || echo "free")
+  LICENSE_STATUS=$(echo "${LICENSE_VALIDATION}" | jq -r '.reason // "unknown"' || echo "validation_error")
 
   if [[ "${TIER}" == "free" ]]; then
     warn "License key did not unlock paid features (reason: ${LICENSE_STATUS})."
