@@ -78,7 +78,14 @@ def validate_signed_token(
             "reason": "invalid_signature",
         }
 
-    claims = json.loads(payload_bytes.decode("utf-8"))
+    try:
+        claims = json.loads(payload_bytes.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return {
+            "valid": False,
+            "tier": "free",
+            "reason": "invalid_payload",
+        }
     now = int(time.time())
 
     plan = str(claims.get("plan", "free")).lower()
