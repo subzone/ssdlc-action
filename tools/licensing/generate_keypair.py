@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
 
 from cryptography.hazmat.primitives import serialization
@@ -22,6 +23,11 @@ def main() -> None:
         default="src/licensing/public_key.pem",
         help="Path to write public key PEM",
     )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite existing private key file if it exists",
+    )
     args = parser.parse_args()
 
     private_key = Ed25519PrivateKey.generate()
@@ -39,10 +45,20 @@ def main() -> None:
 
     private_path = Path(args.private_key_out)
     public_path = Path(args.public_key_out)
+
     private_path.parent.mkdir(parents=True, exist_ok=True)
     public_path.parent.mkdir(parents=True, exist_ok=True)
 
-    private_path.write_bytes(private_pem)
+    flags = os.O_WRONLY | os.O_CREAT | (os.O_TRUNC if args.force else os.O_EXCL)
+    try:
+        fd = os.open(private_path, flags, 0o600)
+    except FileExistsError:
+        raise SystemExit(
+            f"Private key already exists at {private_path}. "
+            "Use --force to overwrite."
+        )
+    with os.fdopen(fd, "wb") as fh:
+        fh.write(private_pem)
     public_path.write_bytes(public_pem)
 
     print(f"Private key written to: {private_path}")
