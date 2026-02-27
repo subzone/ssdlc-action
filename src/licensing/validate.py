@@ -34,8 +34,12 @@ def load_revocations(path: Path) -> set[str] | None:
         return None  # fail closed: corrupted or unreadable file
     if not isinstance(data, dict):
         return None  # fail closed: unexpected JSON structure
-    revoked = data.get("revoked_jti", [])
-    return set(revoked if isinstance(revoked, list) else [])
+    revoked = data.get("revoked_jti")
+    if revoked is None:
+        return set()
+    if not isinstance(revoked, list):
+        return None  # fail closed: revoked_jti has unexpected type
+    return set(revoked)
 
 
 def load_public_key(path: Path) -> Ed25519PublicKey | None:
