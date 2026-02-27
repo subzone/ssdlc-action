@@ -145,6 +145,16 @@ controls, giving teams immediate context on compliance posture.
 
 ---
 
+## Support / Contact
+
+Need help, found a bug, or want enterprise onboarding?
+
+- Open an issue: [GitHub Issues](https://github.com/subzone/ssdlc-action/issues)
+- Security disclosures: please open a private security advisory in this repository
+- Commercial/support enquiries: use your organization contact channel for `subzone`
+
+---
+
 ## Licence
 
 Proprietary © subzone. Use is governed by the EULA in [`LICENSE`](LICENSE).
