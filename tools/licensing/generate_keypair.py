@@ -36,7 +36,8 @@ def main() -> None:
         metavar="ENV_VAR",
         help=(
             "Name of the environment variable containing the passphrase "
-            "used to encrypt the private key (default: PRIVATE_KEY_PASSPHRASE)"
+            "used to encrypt the private key (min 12 characters; "
+            "default: PRIVATE_KEY_PASSPHRASE)"
         ),
     )
     args = parser.parse_args()
