@@ -58,7 +58,15 @@ merge_findings() {
 
 # ── Helper: set GitHub output ─────────────────────────────────────────────────
 set_output() {
-  echo "${1}=${2}" >> "${GITHUB_OUTPUT:-/dev/null}"
+  local key="$1"
+  local value="$2"
+  local output_file="${GITHUB_OUTPUT:-/dev/null}"
+
+  {
+    echo "${key}<<__SSDLC_EOF__"
+    echo "${value}"
+    echo "__SSDLC_EOF__"
+  } >> "${output_file}"
 }
 
 # =============================================================================
@@ -141,23 +149,19 @@ if [[ "${ENABLE_CONTAINER:-false}" == "true" ]]; then
 fi
 
 # =============================================================================
-# PHASE 6 — AI TRIAGE & ANALYSIS (Pro/Enterprise)
+# PHASE 6 — AI TRIAGE & ANALYSIS
 # =============================================================================
-AI_SUMMARY="Security scan complete. AI analysis not enabled on this tier."
+AI_SUMMARY="Security scan complete. AI analysis not enabled."
 if [[ "${ENABLE_AI_TRIAGE:-true}" == "true" ]]; then
-  if [[ "${TIER}" == "free" ]]; then
-    warn "AI triage requires Pro or Enterprise licence. Basic summary only."
-  else
-    header "AI Finding Triage"
-    AI_SUMMARY=$(python3 /action/src/ai/triage.py \
-      --findings "${FINDINGS_FILE}" \
-      --provider "${AI_PROVIDER:-anthropic}" \
-      --model "${AI_MODEL:-claude-sonnet-4-5-20250929}" \
-      --cloud "${CLOUD_PROVIDER:-aws}" \
-      --fix-suggestions "${ENABLE_AI_FIXES:-true}" \
-      2>&1) || warn "AI triage failed — continuing without AI analysis"
-    success "AI triage complete"
-  fi
+  header "AI Finding Triage"
+  AI_SUMMARY=$(python3 /action/src/ai/triage.py \
+    --findings "${FINDINGS_FILE}" \
+    --provider "${AI_PROVIDER:-anthropic}" \
+    --model "${AI_MODEL:-claude-sonnet-4-5-20250929}" \
+    --cloud "${CLOUD_PROVIDER:-aws}" \
+    --fix-suggestions "${ENABLE_AI_FIXES:-true}" \
+    2>&1) || warn "AI triage failed — continuing without AI analysis"
+  success "AI triage complete"
 fi
 
 # =============================================================================
@@ -214,18 +218,22 @@ python3 /action/src/reporters/summary.py \
 
 # SARIF upload (integrates with GitHub Security tab)
 if [[ "${SARIF_UPLOAD:-true}" == "true" ]]; then
-  SARIF_FILE="${RESULTS_DIR}/results.sarif"
-  python3 /action/src/reporters/sarif.py "${FINDINGS_FILE}" "${SARIF_FILE}"
-  if command -v gh &>/dev/null && [[ -n "${GITHUB_TOKEN:-}" ]]; then
-    gh auth setup-git 2>/dev/null || true
-    gh api \
-      --method POST \
-      -H "Accept: application/vnd.github+json" \
-      "/repos/${GITHUB_REPOSITORY}/code-scanning/sarifs" \
-      -f commit_sha="${GITHUB_SHA}" \
-      -f ref="${GITHUB_REF}" \
-      -f sarif="$(gzip -c "${SARIF_FILE}" | base64 -w0)" \
-      -f tool_name="AI SSDLC" 2>/dev/null || warn "SARIF upload failed — check repo permissions"
+  if [[ "${TOTAL}" -gt 0 ]]; then
+    SARIF_FILE="${RESULTS_DIR}/results.sarif"
+    python3 /action/src/reporters/sarif.py "${FINDINGS_FILE}" "${SARIF_FILE}"
+    if command -v gh &>/dev/null && [[ -n "${GITHUB_TOKEN:-}" ]]; then
+      gh auth setup-git 2>/dev/null || true
+      gh api \
+        --method POST \
+        -H "Accept: application/vnd.github+json" \
+        "/repos/${GITHUB_REPOSITORY}/code-scanning/sarifs" \
+        -f commit_sha="${GITHUB_SHA}" \
+        -f ref="${GITHUB_REF}" \
+        -f sarif="$(gzip -c "${SARIF_FILE}" | base64 -w0)" \
+        -f tool_name="AI SSDLC" 2>/dev/null || warn "SARIF upload failed — check repo permissions"
+    fi
+  else
+    log "No findings to upload in SARIF. Skipping SARIF generation/upload."
   fi
 fi
 

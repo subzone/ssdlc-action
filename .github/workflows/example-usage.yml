@@ -30,9 +30,10 @@ jobs:
 
       # ── Free tier — SAST + Secret scan only ────────────────────────────────
       - name: AI SSDLC Security Scan (Free)
-        uses: subzone/ssdlc-action@v1
+        uses: ./
         with:
           ai-api-key:         ${{ secrets.ANTHROPIC_API_KEY }}
+          enable-ai-triage:    'true'
           enable-sast:        'true'
           enable-secret-scan: 'true'
           enable-sca:         'false'
