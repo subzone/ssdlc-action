@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import os
 import time
 import uuid
 from pathlib import Path
@@ -47,10 +48,28 @@ def main() -> None:
         default="",
         help="Optional path to write issued token",
     )
+    parser.add_argument(
+        "--passphrase-env",
+        default="PRIVATE_KEY_PASSPHRASE",
+        metavar="ENV_VAR",
+        help=(
+            "Name of the environment variable containing the passphrase "
+            "used to decrypt the private key (default: PRIVATE_KEY_PASSPHRASE)"
+        ),
+    )
     args = parser.parse_args()
 
+    passphrase = os.environ.get(args.passphrase_env, "")
     key_bytes = Path(args.private_key).read_bytes()
-    private_key = serialization.load_pem_private_key(key_bytes, password=None)
+    if not passphrase and b"ENCRYPTED" in key_bytes:
+        raise SystemExit(
+            f"Private key is encrypted but environment variable '{args.passphrase_env}' "
+            "was not provided (it may be unset or empty). Set it to the passphrase used when generating the key."
+        )
+    private_key = serialization.load_pem_private_key(
+        key_bytes,
+        password=passphrase.encode("utf-8") if passphrase else None,
+    )
     if not isinstance(private_key, Ed25519PrivateKey):
         raise ValueError("Private key must be Ed25519")
 

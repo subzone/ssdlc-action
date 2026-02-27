@@ -30,7 +30,30 @@ def main() -> None:
         action="store_true",
         help="Overwrite existing private key file if it exists",
     )
+    parser.add_argument(
+        "--passphrase-env",
+        default="PRIVATE_KEY_PASSPHRASE",
+        metavar="ENV_VAR",
+        help=(
+            "Name of the environment variable containing the passphrase "
+            "used to encrypt the private key (min 12 characters; "
+            "default: PRIVATE_KEY_PASSPHRASE)"
+        ),
+    )
     args = parser.parse_args()
+
+    passphrase = os.environ.get(args.passphrase_env)
+    if passphrase is None or passphrase == "":
+        raise SystemExit(
+            f"Environment variable '{args.passphrase_env}' must be set and non-empty "
+            "(it is currently unset or empty). "
+            "The private key will be encrypted with this passphrase."
+        )
+    if len(passphrase) < 12:
+        raise SystemExit(
+            f"Passphrase in '{args.passphrase_env}' is too short. "
+            "Use at least 12 characters for adequate encryption strength."
+        )
 
     private_key = Ed25519PrivateKey.generate()
     public_key = private_key.public_key()
@@ -38,7 +61,9 @@ def main() -> None:
     private_pem = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption(),
+        encryption_algorithm=serialization.BestAvailableEncryption(
+            passphrase.encode("utf-8")
+        ),
     )
     public_pem = public_key.public_bytes(
         encoding=serialization.Encoding.PEM,
@@ -83,9 +108,12 @@ def main() -> None:
         raise
     public_path.write_bytes(public_pem)
 
-    print(f"Private key written to: {private_path}")
+    print(f"Private key written to: {private_path} (encrypted with passphrase)")
     print(f"Public key written to: {public_path}")
-    print("Keep private key secret. Commit only the public key.")
+    print(
+        "Keep private key secret. Store the passphrase securely. "
+        "Commit only the public key."
+    )
 
 
 if __name__ == "__main__":
