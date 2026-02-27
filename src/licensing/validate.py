@@ -24,13 +24,16 @@ def b64url_decode(value: str) -> bytes:
     return base64.urlsafe_b64decode(value + padding)
 
 
-def load_revocations(path: Path) -> set[str]:
+def load_revocations(path: Path) -> set[str] | None:
+    """Return the set of revoked JTIs, or None if the file is unreadable/corrupt (fail closed)."""
     if not path.exists():
         return set()
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
-        return set()
+        return None  # fail closed: corrupted or unreadable file
+    if not isinstance(data, dict):
+        return None  # fail closed: unexpected JSON structure
     revoked = data.get("revoked_jti", [])
     return set(revoked if isinstance(revoked, list) else [])
 
@@ -192,6 +195,19 @@ def main() -> None:
         return
 
     revocations = load_revocations(Path(args.revocations_file))
+    if revocations is None:
+        print(
+            json.dumps(
+                {
+                    "valid": False,
+                    "tier": "free",
+                    "reason": "revocation_load_error",
+                },
+                separators=(",", ":"),
+            )
+        )
+        return
+
     public_key = load_public_key(Path(args.public_key_file))
 
     if public_key is not None:
