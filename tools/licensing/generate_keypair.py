@@ -41,10 +41,11 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    passphrase = os.environ.get(args.passphrase_env, "")
-    if not passphrase:
+    passphrase = os.environ.get(args.passphrase_env)
+    if passphrase is None or passphrase == "":
         raise SystemExit(
-            f"Environment variable '{args.passphrase_env}' must be set and non-empty. "
+            f"Environment variable '{args.passphrase_env}' must be set and non-empty "
+            "(it is currently unset or empty). "
             "The private key will be encrypted with this passphrase."
         )
     if len(passphrase) < 12:
