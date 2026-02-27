@@ -58,7 +58,15 @@ merge_findings() {
 
 # ── Helper: set GitHub output ─────────────────────────────────────────────────
 set_output() {
-  echo "${1}=${2}" >> "${GITHUB_OUTPUT:-/dev/null}"
+  local key="$1"
+  local value="$2"
+  local output_file="${GITHUB_OUTPUT:-/dev/null}"
+
+  {
+    echo "${key}<<__SSDLC_EOF__"
+    echo "${value}"
+    echo "__SSDLC_EOF__"
+  } >> "${output_file}"
 }
 
 # =============================================================================
