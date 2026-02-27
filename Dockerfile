@@ -4,9 +4,9 @@
 # ─────────────────────────────────────────────────────────────────
 FROM python:3.12-slim
 
-LABEL maintainer="Milenko Milovanovic"
+LABEL maintainer="subzone"
 LABEL description="AI-powered SSDLC GitHub Action — all security tools included"
-LABEL org.opencontainers.image.source="https://github.com/milenko81/ai-ssdlc-action"
+LABEL org.opencontainers.image.source="https://github.com/subzone/ssdlc-action"
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PATH="/root/.local/bin:/usr/local/go/bin:$PATH"

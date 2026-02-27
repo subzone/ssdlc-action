@@ -81,7 +81,9 @@ def main():
                 "driver": {
                     "name": f"AI-SSDLC / {tool_name}",
                     "version": "1.0.0",
-                    "informationUri": "https://github.com/milenko81/ai-ssdlc-action",
+                    "informationUri": (
+                        "https://github.com/subzone/ssdlc-action"
+                    ),
                     "rules": list(rules.values()),
                 }
             },

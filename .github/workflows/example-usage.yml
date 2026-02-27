@@ -30,7 +30,7 @@ jobs:
 
       # ── Free tier — SAST + Secret scan only ────────────────────────────────
       - name: AI SSDLC Security Scan (Free)
-        uses: milenko81/ai-ssdlc-action@v1
+        uses: subzone/ssdlc-action@v1
         with:
           ai-api-key:         ${{ secrets.ANTHROPIC_API_KEY }}
           enable-sast:        'true'
@@ -41,7 +41,7 @@ jobs:
 
       # ── Pro tier — full scan with AI triage ────────────────────────────────
       # - name: AI SSDLC Security Scan (Pro)
-      #   uses: milenko81/ai-ssdlc-action@v1
+      #   uses: subzone/ssdlc-action@v1
       #   with:
       #     ai-api-key:              ${{ secrets.ANTHROPIC_API_KEY }}
       #     license-key:             ${{ secrets.SSDLC_LICENSE_KEY }}
@@ -59,7 +59,7 @@ jobs:
 
       # ── Enterprise tier — full scan + threat modeling ──────────────────────
       # - name: AI SSDLC Security Scan (Enterprise)
-      #   uses: milenko81/ai-ssdlc-action@v1
+      #   uses: subzone/ssdlc-action@v1
       #   with:
       #     ai-api-key:              ${{ secrets.ANTHROPIC_API_KEY }}
       #     license-key:             ${{ secrets.SSDLC_LICENSE_KEY }}

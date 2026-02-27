@@ -4,7 +4,7 @@
 > SAST · Secret Detection · SCA · IaC · Container · AI Triage · STRIDE Threat Modeling
 
 [![GitHub Marketplace](https://img.shields.io/badge/Marketplace-AI%20SSDLC-blue?logo=github)](https://github.com/marketplace/actions/ai-ssdlc-security-suite)
-[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+[![License](https://img.shields.io/badge/License-Proprietary-blue)](LICENSE)
 
 ---
 
@@ -13,7 +13,7 @@
 Add this to your repository's `.github/workflows/security.yml`:
 
 ```yaml
-- uses: milenko81/ai-ssdlc-action@v1
+- uses: subzone/ssdlc-action@v1
   with:
     ai-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
@@ -94,7 +94,7 @@ That's it. No tooling to install, no configuration required.
 ```yaml
 - name: Run AI SSDLC
   id: security
-  uses: milenko81/ai-ssdlc-action@v1
+  uses: subzone/ssdlc-action@v1
   with:
     ai-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
 
@@ -147,4 +147,6 @@ controls, giving teams immediate context on compliance posture.
 
 ## Licence
 
-MIT © Milenko Milovanovic
+Proprietary © subzone. Use is governed by the EULA in [`LICENSE`](LICENSE).
+
+See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for third-party license obligations.

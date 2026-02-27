@@ -86,8 +86,13 @@ def build_comment(findings: list, ai_summary: dict, counts: dict, passed: str) -
 
     lines += [
         "---",
-        "_Powered by [AI SSDLC Action](https://github.com/milenko81/ai-ssdlc-action) · "
-        "Review the full report in the **Security** tab and **Actions Summary**._",
+        (
+            "_Powered by [AI SSDLC Action]"
+            "(https://github.com/subzone/ssdlc-action) · "
+            "Review the full report in the **Security** tab and "
+            "**Actions Summary**._"
+        )
+        ,
     ]
 
     return "\n".join(lines)

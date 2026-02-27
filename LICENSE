@@ -1,0 +1,82 @@
+END USER LICENSE AGREEMENT (EULA)
+AI SSDLC Security Suite
+
+Last updated: 2026-02-27
+
+This End User License Agreement ("Agreement") is a legal agreement between you
+(individual or legal entity) and subzone ("Licensor") for the software,
+including source code, scripts, documentation, and related materials
+(collectively, the "Software").
+
+1. License Grant
+
+Subject to your compliance with this Agreement, Licensor grants you a limited,
+non-exclusive, non-transferable, non-sublicensable, revocable license to use
+the Software for your internal business or personal purposes.
+
+2. Restrictions
+
+Except as expressly permitted by Licensor in writing, you may not:
+
+- copy, modify, adapt, translate, or create derivative works of the Software;
+- distribute, sell, rent, lease, lend, sublicense, or otherwise commercialize
+	the Software;
+- provide the Software as a hosted, managed, or service-bureau offering;
+- reverse engineer, decompile, disassemble, or attempt to derive source code
+	from non-source distributions, except where prohibited by applicable law;
+- remove or alter copyright, trademark, or proprietary notices.
+
+3. Ownership
+
+The Software is licensed, not sold. Licensor and its licensors retain all
+right, title, and interest in and to the Software, including all intellectual
+property rights.
+
+4. Third-Party Components
+
+The Software may include or depend on third-party components that are licensed
+under separate terms. Your use of those components is governed by their
+respective licenses. In the event of a conflict regarding a third-party
+component, the third-party license terms control for that component.
+
+5. Updates and Support
+
+Licensor may provide updates, patches, or support at its sole discretion unless
+otherwise agreed in a separate written agreement.
+
+6. Term and Termination
+
+This Agreement remains effective until terminated. Licensor may terminate this
+Agreement immediately if you breach it. Upon termination, you must cease all
+use of the Software and destroy all copies in your possession or control.
+
+7. Disclaimer of Warranties
+
+THE SOFTWARE IS PROVIDED "AS IS" AND "AS AVAILABLE," WITHOUT WARRANTIES OF ANY
+KIND, EXPRESS OR IMPLIED, INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE, NON-INFRINGEMENT, AND ANY WARRANTIES ARISING FROM COURSE OF DEALING OR
+USAGE OF TRADE.
+
+8. Limitation of Liability
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, LICENSOR WILL NOT BE LIABLE FOR ANY
+INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, EXEMPLARY, OR PUNITIVE DAMAGES,
+OR FOR ANY LOSS OF PROFITS, REVENUE, DATA, OR GOODWILL, ARISING FROM OR
+RELATING TO THIS AGREEMENT OR THE SOFTWARE.
+
+9. Governing Law
+
+This Agreement is governed by applicable laws of the jurisdiction selected by
+Licensor, without regard to conflict-of-law rules.
+
+10. Entire Agreement
+
+This Agreement constitutes the entire agreement between you and Licensor
+regarding the Software and supersedes prior or contemporaneous understandings
+on this subject.
+
+11. Contact
+
+Licensor: subzone
+Repository: https://github.com/subzone/ssdlc-action
+

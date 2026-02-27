@@ -1,6 +1,6 @@
 name: 'AI SSDLC Security Suite'
 description: 'AI-powered Secure SDLC scanning — SAST, IaC, secrets, SCA, containers & threat modeling in a single action'
-author: 'Milenko Milovanovic'
+author: 'subzone'
 
 branding:
   icon: 'shield'
