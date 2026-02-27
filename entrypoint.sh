@@ -210,18 +210,22 @@ python3 /action/src/reporters/summary.py \
 
 # SARIF upload (integrates with GitHub Security tab)
 if [[ "${SARIF_UPLOAD:-true}" == "true" ]]; then
-  SARIF_FILE="${RESULTS_DIR}/results.sarif"
-  python3 /action/src/reporters/sarif.py "${FINDINGS_FILE}" "${SARIF_FILE}"
-  if command -v gh &>/dev/null && [[ -n "${GITHUB_TOKEN:-}" ]]; then
-    gh auth setup-git 2>/dev/null || true
-    gh api \
-      --method POST \
-      -H "Accept: application/vnd.github+json" \
-      "/repos/${GITHUB_REPOSITORY}/code-scanning/sarifs" \
-      -f commit_sha="${GITHUB_SHA}" \
-      -f ref="${GITHUB_REF}" \
-      -f sarif="$(gzip -c "${SARIF_FILE}" | base64 -w0)" \
-      -f tool_name="AI SSDLC" 2>/dev/null || warn "SARIF upload failed — check repo permissions"
+  if [[ "${TOTAL}" -gt 0 ]]; then
+    SARIF_FILE="${RESULTS_DIR}/results.sarif"
+    python3 /action/src/reporters/sarif.py "${FINDINGS_FILE}" "${SARIF_FILE}"
+    if command -v gh &>/dev/null && [[ -n "${GITHUB_TOKEN:-}" ]]; then
+      gh auth setup-git 2>/dev/null || true
+      gh api \
+        --method POST \
+        -H "Accept: application/vnd.github+json" \
+        "/repos/${GITHUB_REPOSITORY}/code-scanning/sarifs" \
+        -f commit_sha="${GITHUB_SHA}" \
+        -f ref="${GITHUB_REF}" \
+        -f sarif="$(gzip -c "${SARIF_FILE}" | base64 -w0)" \
+        -f tool_name="AI SSDLC" 2>/dev/null || warn "SARIF upload failed — check repo permissions"
+    fi
+  else
+    log "No findings to upload in SARIF. Skipping SARIF generation/upload."
   fi
 fi
 
