@@ -64,7 +64,7 @@ def main() -> None:
     if not passphrase and b"ENCRYPTED" in key_bytes:
         raise SystemExit(
             f"Private key is encrypted but environment variable '{args.passphrase_env}' "
-            "is not set. Set it to the passphrase used when generating the key."
+            "was not provided (it may be unset or empty). Set it to the passphrase used when generating the key."
         )
     private_key = serialization.load_pem_private_key(
         key_bytes,
