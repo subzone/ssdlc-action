@@ -26,7 +26,10 @@ def b64url_decode(value: str) -> bytes:
 def load_revocations(path: Path) -> set[str]:
     if not path.exists():
         return set()
-    data = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return set()
     revoked = data.get("revoked_jti", [])
     return set(revoked if isinstance(revoked, list) else [])
 
