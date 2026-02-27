@@ -141,23 +141,19 @@ if [[ "${ENABLE_CONTAINER:-false}" == "true" ]]; then
 fi
 
 # =============================================================================
-# PHASE 6 — AI TRIAGE & ANALYSIS (Pro/Enterprise)
+# PHASE 6 — AI TRIAGE & ANALYSIS
 # =============================================================================
-AI_SUMMARY="Security scan complete. AI analysis not enabled on this tier."
+AI_SUMMARY="Security scan complete. AI analysis not enabled."
 if [[ "${ENABLE_AI_TRIAGE:-true}" == "true" ]]; then
-  if [[ "${TIER}" == "free" ]]; then
-    warn "AI triage requires Pro or Enterprise licence. Basic summary only."
-  else
-    header "AI Finding Triage"
-    AI_SUMMARY=$(python3 /action/src/ai/triage.py \
-      --findings "${FINDINGS_FILE}" \
-      --provider "${AI_PROVIDER:-anthropic}" \
-      --model "${AI_MODEL:-claude-sonnet-4-5-20250929}" \
-      --cloud "${CLOUD_PROVIDER:-aws}" \
-      --fix-suggestions "${ENABLE_AI_FIXES:-true}" \
-      2>&1) || warn "AI triage failed — continuing without AI analysis"
-    success "AI triage complete"
-  fi
+  header "AI Finding Triage"
+  AI_SUMMARY=$(python3 /action/src/ai/triage.py \
+    --findings "${FINDINGS_FILE}" \
+    --provider "${AI_PROVIDER:-anthropic}" \
+    --model "${AI_MODEL:-claude-sonnet-4-5-20250929}" \
+    --cloud "${CLOUD_PROVIDER:-aws}" \
+    --fix-suggestions "${ENABLE_AI_FIXES:-true}" \
+    2>&1) || warn "AI triage failed — continuing without AI analysis"
+  success "AI triage complete"
 fi
 
 # =============================================================================
