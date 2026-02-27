@@ -59,8 +59,15 @@ def validate_signed_token(
     payload_part = parts[1]
     signature_part = parts[2]
 
-    payload_bytes = b64url_decode(payload_part)
-    signature = b64url_decode(signature_part)
+    try:
+        payload_bytes = b64url_decode(payload_part)
+        signature = b64url_decode(signature_part)
+    except Exception:
+        return {
+            "valid": False,
+            "tier": "free",
+            "reason": "invalid_encoding",
+        }
 
     try:
         public_key.verify(signature, payload_bytes)
