@@ -4,6 +4,9 @@
 from __future__ import annotations
 
 import argparse
+import os
+import stat
+import tempfile
 from pathlib import Path
 
 from cryptography.hazmat.primitives import serialization
@@ -22,6 +25,11 @@ def main() -> None:
         default="src/licensing/public_key.pem",
         help="Path to write public key PEM",
     )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite existing private key file if it exists",
+    )
     args = parser.parse_args()
 
     private_key = Ed25519PrivateKey.generate()
@@ -39,10 +47,40 @@ def main() -> None:
 
     private_path = Path(args.private_key_out)
     public_path = Path(args.public_key_out)
+
     private_path.parent.mkdir(parents=True, exist_ok=True)
     public_path.parent.mkdir(parents=True, exist_ok=True)
 
-    private_path.write_bytes(private_pem)
+    if not args.force and private_path.exists():
+        raise SystemExit(
+            f"Private key already exists at {private_path}. "
+            "Use --force to overwrite."
+        )
+
+    # Reject non-regular files (e.g. symlinks, devices) before writing
+    if private_path.exists():
+        st = os.lstat(private_path)
+        if not stat.S_ISREG(st.st_mode):
+            raise SystemExit(
+                f"{private_path} exists and is not a regular file. Aborting."
+            )
+
+    # Write to a temporary file with 0o600 permissions in the same directory,
+    # then atomically replace the destination so:
+    #   1. The file is never readable by others at any point.
+    #   2. os.replace() does not follow symlinks at the destination.
+    tmp_fd, tmp_path = tempfile.mkstemp(dir=private_path.parent)
+    try:
+        os.fchmod(tmp_fd, 0o600)
+        with os.fdopen(tmp_fd, "wb") as fh:
+            fh.write(private_pem)
+        os.replace(tmp_path, private_path)
+    except Exception:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
     public_path.write_bytes(public_pem)
 
     print(f"Private key written to: {private_path}")

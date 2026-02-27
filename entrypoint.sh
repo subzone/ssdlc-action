@@ -30,10 +30,8 @@ LICENSE_STATUS="none"
 
 if [[ -n "${LICENSE_KEY:-}" ]]; then
   LICENSE_VALIDATION=$(python3 /action/src/licensing/validate.py \
-    --license-key "${LICENSE_KEY}" \
     --public-key-file "/action/src/licensing/public_key.pem" \
     --revocations-file "/action/src/licensing/revocations.json" \
-    --allow-legacy-prefix "true" \
     2>/dev/null || echo '{"valid":false,"tier":"free","reason":"validation_error"}')
 
   TIER=$(echo "${LICENSE_VALIDATION}" | jq -r '.tier // "free"' || echo "free")

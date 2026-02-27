@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import os
 import time
 import uuid
 from pathlib import Path
@@ -169,7 +170,6 @@ def validate_legacy_prefix(key: str) -> dict[str, Any]:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--license-key", default="")
     parser.add_argument(
         "--public-key-file",
         default="/action/src/licensing/public_key.pem",
@@ -180,12 +180,13 @@ def main() -> None:
     )
     parser.add_argument(
         "--allow-legacy-prefix",
-        default="true",
+        default="false",
         choices=["true", "false"],
     )
     args = parser.parse_args()
 
-    key = (args.license_key or "").strip()
+    # Read license key from environment variable only to avoid leaking in process listings
+    key = os.environ.get("LICENSE_KEY", "").strip()
     if not key:
         print(json.dumps({"valid": False, "tier": "free", "reason": "no_key"}))
         return
@@ -204,6 +205,7 @@ def main() -> None:
 
     if (
         not result.get("valid", False)
+        and result.get("reason") == "invalid_format"
         and args.allow_legacy_prefix == "true"
     ):
         legacy = validate_legacy_prefix(key)
