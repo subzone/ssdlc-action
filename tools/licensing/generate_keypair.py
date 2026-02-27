@@ -111,7 +111,7 @@ def main() -> None:
     print(f"Private key written to: {private_path} (encrypted with passphrase)")
     print(f"Public key written to: {public_path}")
     print(
-        f"Keep private key secret. Store the passphrase securely. "
+        "Keep private key secret. Store the passphrase securely. "
         "Commit only the public key."
     )
 
