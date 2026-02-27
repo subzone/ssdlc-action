@@ -17,3 +17,6 @@ env/
 .DS_Store
 Thumbs.db
 .vscode/
+
+# Licensing secrets (issuer-side only)
+tools/licensing/private_key.pem

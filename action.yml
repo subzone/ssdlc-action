@@ -24,7 +24,7 @@ inputs:
 
   # ── License / Tier ─────────────────────────────────────────────
   license-key:
-    description: 'License key for Pro/Enterprise features (optional — free tier if omitted)'
+    description: 'Signed SSDL1 license token for Pro/Enterprise features (optional — free tier if omitted)'
     required: false
     default: ''
 

@@ -54,7 +54,7 @@ That's it. No tooling to install, no configuration required.
 |-------|---------|-------------|
 | `ai-provider` | `anthropic` | `anthropic` or `openai` |
 | `ai-model` | `claude-sonnet-4-5-20250929` | Model name |
-| `license-key` | *(empty)* | Pro/Enterprise licence key |
+| `license-key` | *(empty)* | Signed SSDL1 Pro/Enterprise licence token |
 | `severity-threshold` | `high` | `critical`, `high`, `medium`, or `low` |
 | `fail-on-findings` | `true` | Block the workflow on findings |
 | `enable-sast` | `true` | Run Semgrep SAST |
@@ -70,6 +70,31 @@ That's it. No tooling to install, no configuration required.
 | `semgrep-rules` | `auto` | Semgrep ruleset |
 | `post-pr-comment` | `true` | Post AI summary to PR |
 | `sarif-upload` | `true` | Upload to GitHub Security tab |
+
+---
+
+## Licence Key Management (Pro / Enterprise)
+
+This project includes an offline signing/validation flow for paid tiers.
+
+- Runtime validator: `src/licensing/validate.py`
+- Public verification key: `src/licensing/public_key.pem`
+- Revocations: `src/licensing/revocations.json`
+- Issuer tooling:
+  - `tools/licensing/generate_keypair.py`
+  - `tools/licensing/issue_license.py`
+  - `tools/licensing/revoke_license.py`
+
+### Issuance flow
+
+1. Generate keypair once (keep private key out of git).
+2. Commit only `src/licensing/public_key.pem`.
+3. Issue a token for each customer (`pro` or `enterprise`).
+4. Customer stores token in GitHub secret and passes it as `license-key`.
+5. Revoke compromised keys by adding their `jti` to `src/licensing/revocations.json`.
+
+Legacy prefix keys (`PRO-*`, `ENT-*`) are accepted for backward compatibility,
+but signed `SSDL1.<payload>.<signature>` tokens are recommended for production.
 
 ---
 

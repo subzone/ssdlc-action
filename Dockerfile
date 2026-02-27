@@ -34,7 +34,8 @@ RUN pip install --no-cache-dir \
     requests \
     jinja2 \
     pyyaml \
-    packaging
+    packaging \
+    cryptography
 
 # ── Gitleaks (secret scanning) ────────────────────────────────────
 RUN GITLEAKS_VERSION="8.18.3" && \
