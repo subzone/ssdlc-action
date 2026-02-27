@@ -40,7 +40,10 @@ def load_public_key(path: Path) -> Ed25519PublicKey | None:
     pem = path.read_text(encoding="utf-8")
     if "REPLACE_WITH_YOUR_ED25519_PUBLIC_KEY" in pem:
         return None
-    key = load_pem_public_key(pem.encode("utf-8"))
+    try:
+        key = load_pem_public_key(pem.encode("utf-8"))
+    except Exception:
+        return None
     if not isinstance(key, Ed25519PublicKey):
         raise ValueError("Public key must be an Ed25519 key")
     return key
