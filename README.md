@@ -151,7 +151,7 @@ Need help, found a bug, or want enterprise onboarding?
 
 - Open an issue: [GitHub Issues](https://github.com/subzone/ssdlc-action/issues)
 - Security disclosures: please open a [private security advisory](https://github.com/subzone/ssdlc-action/security/advisories/new) in this repository
-- Commercial/support enquiries: use your organization contact channel for `subzone`
+- Commercial/support enquiries (existing customers): please use your usual organization contact channel for `subzone`
 
 ---
 
