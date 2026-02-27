@@ -1,0 +1,79 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# AI SSDLC Action — Example Client Workflow
+# Copy this into your repository's .github/workflows/ directory.
+# ─────────────────────────────────────────────────────────────────────────────
+name: Security Scan
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * 1'   # Weekly Monday 2am nightly scan
+
+permissions:
+  contents:        read
+  security-events: write   # Required for SARIF upload to Security tab
+  pull-requests:   write   # Required for PR comments
+
+jobs:
+  ai-ssdlc:
+    name: AI SSDLC Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # Required for threat modeling (git diff)
+
+      # ── Free tier — SAST + Secret scan only ────────────────────────────────
+      - name: AI SSDLC Security Scan (Free)
+        uses: milenko81/ai-ssdlc-action@v1
+        with:
+          ai-api-key:         ${{ secrets.ANTHROPIC_API_KEY }}
+          enable-sast:        'true'
+          enable-secret-scan: 'true'
+          enable-sca:         'false'
+          enable-iac-scan:    'false'
+          severity-threshold: 'high'
+
+      # ── Pro tier — full scan with AI triage ────────────────────────────────
+      # - name: AI SSDLC Security Scan (Pro)
+      #   uses: milenko81/ai-ssdlc-action@v1
+      #   with:
+      #     ai-api-key:              ${{ secrets.ANTHROPIC_API_KEY }}
+      #     license-key:             ${{ secrets.SSDLC_LICENSE_KEY }}
+      #     enable-sast:             'true'
+      #     enable-secret-scan:      'true'
+      #     enable-sca:              'true'
+      #     enable-iac-scan:         'true'
+      #     enable-ai-triage:        'true'
+      #     enable-ai-fix-suggestions: 'true'
+      #     cloud-provider:          'aws'
+      #     severity-threshold:      'high'
+      #     fail-on-findings:        'true'
+      #     post-pr-comment:         'true'
+      #     sarif-upload:            'true'
+
+      # ── Enterprise tier — full scan + threat modeling ──────────────────────
+      # - name: AI SSDLC Security Scan (Enterprise)
+      #   uses: milenko81/ai-ssdlc-action@v1
+      #   with:
+      #     ai-api-key:              ${{ secrets.ANTHROPIC_API_KEY }}
+      #     license-key:             ${{ secrets.SSDLC_LICENSE_KEY }}
+      #     enable-sast:             'true'
+      #     enable-secret-scan:      'true'
+      #     enable-sca:              'true'
+      #     enable-iac-scan:         'true'
+      #     enable-container-scan:   'true'
+      #     container-image:         'myapp:${{ github.sha }}'
+      #     enable-threat-modeling:  'true'
+      #     enable-ai-triage:        'true'
+      #     enable-ai-fix-suggestions: 'true'
+      #     cloud-provider:          'aws'
+      #     severity-threshold:      'high'
+      #     fail-on-findings:        'true'
+      #     post-pr-comment:         'true'
+      #     sarif-upload:            'true'

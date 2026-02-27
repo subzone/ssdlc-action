@@ -1,0 +1,174 @@
+name: 'AI SSDLC Security Suite'
+description: 'AI-powered Secure SDLC scanning — SAST, IaC, secrets, SCA, containers & threat modeling in a single action'
+author: 'Milenko Milovanovic'
+
+branding:
+  icon: 'shield'
+  color: 'red'
+
+inputs:
+  # ── AI Provider ────────────────────────────────────────────────
+  ai-api-key:
+    description: 'Anthropic or OpenAI API key for AI-powered analysis'
+    required: true
+
+  ai-provider:
+    description: 'AI provider to use: anthropic | openai'
+    required: false
+    default: 'anthropic'
+
+  ai-model:
+    description: 'Model to use (e.g. claude-sonnet-4-5-20250929 or gpt-4o)'
+    required: false
+    default: 'claude-sonnet-4-5-20250929'
+
+  # ── License / Tier ─────────────────────────────────────────────
+  license-key:
+    description: 'License key for Pro/Enterprise features (optional — free tier if omitted)'
+    required: false
+    default: ''
+
+  # ── Scanner Toggles ────────────────────────────────────────────
+  enable-sast:
+    description: 'Run SAST scanning with Semgrep'
+    required: false
+    default: 'true'
+
+  enable-secret-scan:
+    description: 'Run secret scanning with Gitleaks'
+    required: false
+    default: 'true'
+
+  enable-sca:
+    description: 'Run Software Composition Analysis (dependency vulnerabilities)'
+    required: false
+    default: 'true'
+
+  enable-iac-scan:
+    description: 'Run IaC security scan with Checkov (Terraform, CloudFormation, Bicep)'
+    required: false
+    default: 'true'
+
+  enable-container-scan:
+    description: 'Run container image scan with Trivy'
+    required: false
+    default: 'false'
+
+  container-image:
+    description: 'Container image to scan (required if enable-container-scan is true)'
+    required: false
+    default: ''
+
+  enable-threat-modeling:
+    description: 'Run AI-powered STRIDE threat modeling on architecture changes'
+    required: false
+    default: 'false'
+
+  # ── AI Features ────────────────────────────────────────────────
+  enable-ai-triage:
+    description: 'Use AI to triage, deduplicate and prioritise findings'
+    required: false
+    default: 'true'
+
+  enable-ai-fix-suggestions:
+    description: 'Include AI-generated fix suggestions in the PR comment'
+    required: false
+    default: 'true'
+
+  # ── Policy & Gates ─────────────────────────────────────────────
+  severity-threshold:
+    description: 'Minimum severity that fails the build: critical | high | medium | low'
+    required: false
+    default: 'high'
+
+  fail-on-findings:
+    description: 'Set to false to report findings without blocking the workflow'
+    required: false
+    default: 'true'
+
+  # ── Reporting ──────────────────────────────────────────────────
+  post-pr-comment:
+    description: 'Post AI security summary as a PR comment'
+    required: false
+    default: 'true'
+
+  sarif-upload:
+    description: 'Upload SARIF results to GitHub Security tab'
+    required: false
+    default: 'true'
+
+  cloud-provider:
+    description: 'Primary cloud target for WAF control mapping: aws | azure | gcp'
+    required: false
+    default: 'aws'
+
+  # ── Advanced ───────────────────────────────────────────────────
+  semgrep-rules:
+    description: 'Custom Semgrep ruleset (e.g. p/owasp-top-ten). Defaults to auto.'
+    required: false
+    default: 'auto'
+
+  checkov-framework:
+    description: 'Checkov framework filter (e.g. terraform,cloudformation). Defaults to all.'
+    required: false
+    default: ''
+
+  output-dir:
+    description: 'Directory to write scan artefacts and reports into'
+    required: false
+    default: '.ssdlc-results'
+
+outputs:
+  findings-count:
+    description: 'Total number of findings across all scanners'
+
+  critical-count:
+    description: 'Number of critical severity findings'
+
+  high-count:
+    description: 'Number of high severity findings'
+
+  medium-count:
+    description: 'Number of medium severity findings'
+
+  low-count:
+    description: 'Number of low severity findings'
+
+  ai-summary:
+    description: 'AI-generated plain-English security summary'
+
+  threat-model:
+    description: 'AI-generated STRIDE threat model (if enabled)'
+
+  passed:
+    description: 'true if the security gate passed, false if findings blocked the build'
+
+  report-path:
+    description: 'Path to the full JSON findings report'
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  env:
+    AI_API_KEY:           ${{ inputs.ai-api-key }}
+    AI_PROVIDER:          ${{ inputs.ai-provider }}
+    AI_MODEL:             ${{ inputs.ai-model }}
+    LICENSE_KEY:          ${{ inputs.license-key }}
+    ENABLE_SAST:          ${{ inputs.enable-sast }}
+    ENABLE_SECRET_SCAN:   ${{ inputs.enable-secret-scan }}
+    ENABLE_SCA:           ${{ inputs.enable-sca }}
+    ENABLE_IAC:           ${{ inputs.enable-iac-scan }}
+    ENABLE_CONTAINER:     ${{ inputs.enable-container-scan }}
+    CONTAINER_IMAGE:      ${{ inputs.container-image }}
+    ENABLE_THREAT_MODEL:  ${{ inputs.enable-threat-modeling }}
+    ENABLE_AI_TRIAGE:     ${{ inputs.enable-ai-triage }}
+    ENABLE_AI_FIXES:      ${{ inputs.enable-ai-fix-suggestions }}
+    SEVERITY_THRESHOLD:   ${{ inputs.severity-threshold }}
+    FAIL_ON_FINDINGS:     ${{ inputs.fail-on-findings }}
+    POST_PR_COMMENT:      ${{ inputs.post-pr-comment }}
+    SARIF_UPLOAD:         ${{ inputs.sarif-upload }}
+    CLOUD_PROVIDER:       ${{ inputs.cloud-provider }}
+    SEMGREP_RULES:        ${{ inputs.semgrep-rules }}
+    CHECKOV_FRAMEWORK:    ${{ inputs.checkov-framework }}
+    OUTPUT_DIR:           ${{ inputs.output-dir }}
+    GITHUB_TOKEN:         ${{ github.token }}
