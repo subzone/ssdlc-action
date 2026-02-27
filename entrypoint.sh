@@ -24,17 +24,29 @@ RESULTS_DIR="${WORKSPACE}/${OUTPUT_DIR}"
 SEVERITY_THRESHOLD="${SEVERITY_THRESHOLD:-high}"
 FAIL_ON_FINDINGS="${FAIL_ON_FINDINGS:-true}"
 
-# ── Tier check ────────────────────────────────────────────────────────────────
+# ── Tier check / license validation ───────────────────────────────────────────
 TIER="free"
+LICENSE_STATUS="none"
+
 if [[ -n "${LICENSE_KEY:-}" ]]; then
-  # Simple hash check — replace with your actual license validation logic
-  if echo "${LICENSE_KEY}" | grep -qE "^ENT-"; then
-    TIER="enterprise"
-  elif echo "${LICENSE_KEY}" | grep -qE "^PRO-"; then
-    TIER="pro"
+  LICENSE_VALIDATION=$(python3 /action/src/licensing/validate.py \
+    --license-key "${LICENSE_KEY}" \
+    --public-key-file "/action/src/licensing/public_key.pem" \
+    --revocations-file "/action/src/licensing/revocations.json" \
+    --allow-legacy-prefix "true" \
+    2>/dev/null || echo '{"valid":false,"tier":"free","reason":"validation_error"}')
+
+  TIER=$(echo "${LICENSE_VALIDATION}" | jq -r '.tier // "free"')
+  LICENSE_STATUS=$(echo "${LICENSE_VALIDATION}" | jq -r '.reason // "unknown"')
+
+  if [[ "${TIER}" == "free" ]]; then
+    warn "License key did not unlock paid features (reason: ${LICENSE_STATUS})."
+  elif [[ "${LICENSE_STATUS}" == "legacy_prefix" ]]; then
+    warn "Legacy prefix license accepted. Move to signed SSDL1 tokens for production billing."
   fi
 fi
-log "Running as tier: ${TIER}"
+
+log "Running as tier: ${TIER} (license: ${LICENSE_STATUS})"
 
 # ── Setup results directory ───────────────────────────────────────────────────
 mkdir -p "${RESULTS_DIR}"
