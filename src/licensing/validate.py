@@ -226,12 +226,12 @@ def main() -> None:
     if (
         not result.get("valid", False)
         and result.get("reason") == "invalid_format"
+        and result.get("reason") == "invalid_format"
         and args.allow_legacy_prefix == "true"
     ):
         legacy = validate_legacy_prefix(key)
         if legacy.get("valid", False):
             result = legacy
-
     print(json.dumps(result, separators=(",", ":")))
 
 
