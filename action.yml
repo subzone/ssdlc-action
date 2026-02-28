@@ -18,7 +18,7 @@ inputs:
     default: 'anthropic'
 
   ai-model:
-    description: 'Model to use (e.g. claude-sonnet-4-5-20250929 or gpt-4o)'
+    description: 'Model to use (e.g. claude-sonnet-4-6 or gpt-4o)'
     required: false
     default: 'claude-sonnet-4-6'
 
