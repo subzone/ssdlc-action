@@ -169,7 +169,7 @@ if [[ "${ENABLE_AI_TRIAGE:-true}" == "true" ]]; then
     --provider "${AI_PROVIDER:-anthropic}" \
     --model "${AI_MODEL:-claude-sonnet-4-6}" \
     --cloud "${CLOUD_PROVIDER:-aws}" \
-    --fix-suggestions "${ENABLE_AI_FIXES:-true}" 2>&1) || warn "AI triage failed — continuing without AI analysis"
+    --fix-suggestions "${ENABLE_AI_FIXES:-true}") || warn "AI triage failed — continuing without AI analysis"
   success "AI triage complete"
 fi
 
