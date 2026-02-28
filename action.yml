@@ -148,7 +148,7 @@ outputs:
 
 runs:
   using: 'docker'
-  image: 'Dockerfile'
+  image: 'docker://ghcr.io/subzone/ssdlc-action:latest'
   env:
     AI_API_KEY:           ${{ inputs.ai-api-key }}
     AI_PROVIDER:          ${{ inputs.ai-provider }}
