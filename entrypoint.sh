@@ -167,10 +167,9 @@ if [[ "${ENABLE_AI_TRIAGE:-true}" == "true" ]]; then
   AI_SUMMARY=$(python3 /action/src/ai/triage.py \
     --findings "${FINDINGS_FILE}" \
     --provider "${AI_PROVIDER:-anthropic}" \
-    --model "${AI_MODEL:-claude-sonnet-4-5-20250929}" \
+    --model "${AI_MODEL:-claude-sonnet-4-6}" \
     --cloud "${CLOUD_PROVIDER:-aws}" \
-    --fix-suggestions "${ENABLE_AI_FIXES:-true}" \
-    2>&1) || warn "AI triage failed — continuing without AI analysis"
+    --fix-suggestions "${ENABLE_AI_FIXES:-true}") || warn "AI triage failed — continuing without AI analysis"
   success "AI triage complete"
 fi
 
@@ -186,9 +185,8 @@ if [[ "${ENABLE_THREAT_MODEL:-false}" == "true" ]]; then
     THREAT_MODEL=$(python3 /action/src/ai/threat_model.py \
       --workspace "${WORKSPACE}" \
       --provider "${AI_PROVIDER:-anthropic}" \
-      --model "${AI_MODEL:-claude-sonnet-4-5-20250929}" \
-      --cloud "${CLOUD_PROVIDER:-aws}" \
-      2>&1) || warn "Threat modeling failed — continuing"
+      --model "${AI_MODEL:-claude-sonnet-4-6}" \
+      --cloud "${CLOUD_PROVIDER:-aws}") || warn "Threat modeling failed — continuing"
     success "Threat modeling complete"
   fi
 fi

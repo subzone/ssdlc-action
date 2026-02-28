@@ -41,7 +41,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--findings",       required=True)
     parser.add_argument("--provider",       default="anthropic")
-    parser.add_argument("--model",          default="claude-sonnet-4-5-20250929")
+    parser.add_argument("--model",          default="claude-sonnet-4-6")
     parser.add_argument("--cloud",          default="aws")
     parser.add_argument("--fix-suggestions", default="true")
     args = parser.parse_args()
