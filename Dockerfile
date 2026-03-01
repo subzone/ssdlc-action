@@ -38,14 +38,14 @@ RUN pip install --no-cache-dir \
     cryptography
 
 # ── Gitleaks (secret scanning) ────────────────────────────────────
-RUN GITLEAKS_VERSION="8.18.3" && \
+RUN GITLEAKS_VERSION="8.30.0" && \
     curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
     -o /tmp/gitleaks.tar.gz && \
     tar -xzf /tmp/gitleaks.tar.gz -C /usr/local/bin gitleaks && \
     rm /tmp/gitleaks.tar.gz
 
 # ── Trivy (container + IaC + SCA scanning) ────────────────────────
-RUN TRIVY_VERSION="0.50.1" && \
+RUN TRIVY_VERSION="0.69.1" && \
     curl -sSfL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" \
     -o /tmp/trivy.tar.gz && \
     tar -xzf /tmp/trivy.tar.gz -C /usr/local/bin trivy && \
