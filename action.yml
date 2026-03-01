@@ -148,7 +148,10 @@ outputs:
 
 runs:
   using: 'docker'
-  image: 'docker://ghcr.io/subzone/ssdlc-action:latest'
+  # Image tag matches the git ref the user pins to (e.g. @v1.2.3 → :v1.2.3, @main → :main).
+  # CI publishes a matching tag on every push/tag so the image is always in sync.
+  # Avoid :latest here — it would break reproducibility when users pin to a release tag.
+  image: 'docker://ghcr.io/subzone/ssdlc-action:main'
   env:
     AI_API_KEY:           ${{ inputs.ai-api-key }}
     AI_PROVIDER:          ${{ inputs.ai-provider }}

@@ -19,7 +19,7 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: '0 2 * * 1'   # Weekly Monday 2 AM nightly scan
+    - cron: '0 2 * * 1'   # Weekly — Mondays at 02:00 UTC
   workflow_dispatch:         # Allow manual trigger from the Actions tab
 
 permissions:
@@ -40,7 +40,7 @@ jobs:
 
       # ── Free tier — SAST + Secret scan only ──────────────────────────────
       - name: AI SSDLC Security Scan
-        uses: subzone/ssdlc-action@main
+        uses: subzone/ssdlc-action@v1
         with:
           ai-api-key:          ${{ secrets.ANTHROPIC_API_KEY }}
           enable-ai-triage:    'true'
