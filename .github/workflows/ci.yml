@@ -78,12 +78,14 @@ jobs:
         run: echo "Pushed ${{ env.IMAGE_NAME }}@${{ steps.build-push.outputs.digest }}"
 
   # ---------------------------------------------------------------------------
-  # Enterprise self-scan — runs after the image is built so the container scan
-  # always targets a real published image (main tag on push, or latest on PRs).
+  # Enterprise self-scan — runs after the image is built and pushed.
+  # Skipped on PRs because the image is not pushed on pull_request events;
+  # runs on push-to-main and version tags where :main / :vX.Y.Z exist.
   # ---------------------------------------------------------------------------
   security-scan:
     name: Enterprise Security Scan
     needs: build-push
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
 
     permissions:
