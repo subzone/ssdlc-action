@@ -45,11 +45,16 @@ RUN GITLEAKS_VERSION="8.30.0" && \
     rm /tmp/gitleaks.tar.gz
 
 # ── Trivy (container + IaC + SCA scanning) ────────────────────────
-RUN TRIVY_VERSION="0.69.1" && \
-    curl -sSfL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" \
-    -o /tmp/trivy.tar.gz && \
-    tar -xzf /tmp/trivy.tar.gz -C /usr/local/bin trivy && \
-    rm /tmp/trivy.tar.gz
+# Use the official Trivy apt repo — avoids hardcoding release URLs that
+# can 404 when GitHub asset naming changes between versions.
+RUN wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key \
+    | gpg --dearmor \
+    | tee /usr/share/keyrings/trivy.gpg > /dev/null && \
+    echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" \
+    | tee /etc/apt/sources.list.d/trivy.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends trivy && \
+    rm -rf /var/lib/apt/lists/*
 
 # ── GitHub CLI (for PR comments and SARIF upload) ─────────────────
 RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
