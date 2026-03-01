@@ -1,0 +1,103 @@
+# =============================================================================
+# AI SSDLC Action — Example Client Workflow
+# =============================================================================
+# Copy this file into YOUR repository at .github/workflows/security.yml
+# then configure the secrets listed below.
+#
+# Required secrets in your repo:
+#   ANTHROPIC_API_KEY  — your Anthropic API key (free tier works)
+#   SSDLC_LICENSE_KEY  — Pro/Enterprise license token (Pro tier onwards)
+#
+# The scan results artifact is uploaded as "ssdlc-results" so ssdlc-studio
+# can display findings in the dashboard.
+# =============================================================================
+name: Security Scan
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * 1'   # Weekly — Mondays at 02:00 UTC
+  workflow_dispatch:         # Allow manual trigger from the Actions tab
+
+permissions:
+  contents:        read
+  security-events: write   # Required for SARIF upload to the Security tab
+  pull-requests:   write   # Required for PR comments
+
+jobs:
+  ai-ssdlc:
+    name: AI SSDLC Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # Required for threat modeling (git diff HEAD~1)
+
+      # ── Free tier — SAST + Secret scan only ──────────────────────────────
+      - name: AI SSDLC Security Scan
+        uses: subzone/ssdlc-action@v1
+        with:
+          ai-api-key:          ${{ secrets.ANTHROPIC_API_KEY }}
+          enable-ai-triage:    'true'
+          enable-sast:         'true'
+          enable-secret-scan:  'true'
+          enable-sca:          'false'
+          enable-iac-scan:     'false'
+          severity-threshold:  'high'
+          fail-on-findings:    'false'   # Don't fail the build while testing
+
+      # ── Pro tier (uncomment + add license key) ────────────────────────────
+      # - name: AI SSDLC Security Scan (Pro)
+      #   uses: subzone/ssdlc-action@main
+      #   with:
+      #     ai-api-key:                ${{ secrets.ANTHROPIC_API_KEY }}
+      #     license-key:               ${{ secrets.SSDLC_LICENSE_KEY }}
+      #     enable-sast:               'true'
+      #     enable-secret-scan:        'true'
+      #     enable-sca:                'true'
+      #     enable-iac-scan:           'true'
+      #     enable-ai-triage:          'true'
+      #     enable-ai-fix-suggestions: 'true'
+      #     cloud-provider:            'aws'
+      #     severity-threshold:        'high'
+      #     fail-on-findings:          'true'
+      #     post-pr-comment:           'true'
+      #     sarif-upload:              'true'
+
+      # ── Enterprise tier (uncomment + add license key) ─────────────────────
+      # - name: AI SSDLC Security Scan (Enterprise)
+      #   uses: subzone/ssdlc-action@main
+      #   with:
+      #     ai-api-key:                ${{ secrets.ANTHROPIC_API_KEY }}
+      #     license-key:               ${{ secrets.SSDLC_LICENSE_KEY }}
+      #     enable-sast:               'true'
+      #     enable-secret-scan:        'true'
+      #     enable-sca:                'true'
+      #     enable-iac-scan:           'true'
+      #     enable-container-scan:     'true'
+      #     container-image:           'myapp:${{ github.sha }}'
+      #     enable-threat-modeling:    'true'
+      #     enable-ai-triage:          'true'
+      #     enable-ai-fix-suggestions: 'true'
+      #     cloud-provider:            'aws'
+      #     severity-threshold:        'high'
+      #     fail-on-findings:          'true'
+      #     post-pr-comment:           'true'
+      #     sarif-upload:              'true'
+
+      # ── Upload findings artifact for ssdlc-studio dashboard ──────────────
+      # Always upload — even if the scan step fails — so findings are visible.
+      # The platform looks for an artifact whose name contains "ssdlc" or "findings".
+      - name: Upload SSDLC scan results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ssdlc-results
+          path: .ssdlc-results/
+          retention-days: 30
+          if-no-files-found: warn
