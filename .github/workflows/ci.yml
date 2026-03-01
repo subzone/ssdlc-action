@@ -1,8 +1,12 @@
 # =============================================================================
-# ssdlc-action — CI: Build & Push Docker Image
+# ssdlc-action — CI: Build & Push + Enterprise Self-Scan
 # Builds the action Docker image and pushes to GHCR on every merge to main
 # and on every tagged release. This pre-built image is referenced by action.yml
 # so client workflows skip the ~10-minute local Docker build entirely.
+#
+# After building, the repo scans itself using the full enterprise licence so
+# every commit and PR is gated by SAST, secret scan, SCA, IaC, container scan
+# and AI threat modelling before it can ship to customers.
 # =============================================================================
 
 name: Build & Push
@@ -55,6 +59,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build and push
+        id: build-push
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -69,3 +74,51 @@ jobs:
       - name: Image digest
         if: github.event_name != 'pull_request'
         run: echo "Pushed ${{ env.IMAGE_NAME }}@${{ steps.build-push.outputs.digest }}"
+
+  # ---------------------------------------------------------------------------
+  # Enterprise self-scan — runs after the image is built so the container scan
+  # always targets a real published image (main tag on push, or latest on PRs).
+  # ---------------------------------------------------------------------------
+  security-scan:
+    name: Enterprise Security Scan
+    needs: build-push
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents:        read
+      security-events: write   # SARIF upload to GitHub Security tab
+      pull-requests:   write   # Post AI summary as PR comment
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: SSDLC Enterprise Scan
+        uses: subzone/ssdlc-action@main
+        with:
+          license-key:               ${{ secrets.SSDLC_LICENSE_KEY }}
+          ai-api-key:                ${{ secrets.ANTHROPIC_API_KEY }}
+
+          # ── Scanners ────────────────────────────────────────────────
+          enable-sast:               'true'
+          enable-secret-scan:        'true'
+          enable-sca:                'true'
+          enable-iac-scan:           'true'
+          # Scan the action image itself — on PRs use the last published
+          # main image; on push to main the build job just updated it.
+          enable-container-scan:     'true'
+          container-image:           'ghcr.io/subzone/ssdlc-action:main'
+
+          # ── Enterprise AI features ───────────────────────────────────
+          enable-threat-modeling:    'true'
+          enable-ai-triage:          'true'
+          enable-ai-fix-suggestions: 'true'
+
+          # ── Policy gate ──────────────────────────────────────────────
+          severity-threshold:        'high'
+          fail-on-findings:          'true'
+
+          # ── Reporting ───────────────────────────────────────────────
+          post-pr-comment:           'true'
+          sarif-upload:              'true'
+          cloud-provider:            'aws'
