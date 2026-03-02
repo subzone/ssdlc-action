@@ -9,12 +9,12 @@ branding:
 inputs:
   # ── AI Provider ────────────────────────────────────────────────
   ai-api-key:
-    description: 'API key for the AI provider. Anthropic/OpenAI: their respective key. GitHub Models: pass secrets.GITHUB_TOKEN (no external account needed).'
+    description: 'API key for the AI provider — Anthropic or OpenAI key. Not required when ai-provider is github; use github-token instead.'
     required: false
     default: ''
 
   ai-provider:
-    description: 'AI provider: anthropic | openai | github (GitHub Models — free, uses GITHUB_TOKEN)'
+    description: 'AI provider: anthropic | openai | github (GitHub Models — free, no external account needed)'
     required: false
     default: 'anthropic'
 
@@ -24,7 +24,7 @@ inputs:
     default: 'claude-sonnet-4-6'
 
   github-token:
-    description: 'GitHub token for SARIF upload, PR comments, and GitHub Models AI. Pass secrets.GITHUB_TOKEN.'
+    description: 'GitHub token for SARIF upload, PR comments, and GitHub Models AI (ai-provider: github). Always pass secrets.GITHUB_TOKEN.'
     required: false
     default: ''
 

@@ -126,7 +126,12 @@ def main():
     args = parser.parse_args()
 
     api_key = os.environ.get("AI_API_KEY", "")
-    if not api_key:
+    # For GitHub Models, GITHUB_TOKEN is the credential; AI_API_KEY is a fallback
+    if args.provider.lower() == "github":
+        effective_key = os.environ.get("GITHUB_TOKEN", "") or api_key
+    else:
+        effective_key = api_key
+    if not effective_key:
         print(json.dumps({"summary": "Threat modeling skipped — no API key."}))
         return
 
@@ -174,7 +179,7 @@ FILE CONTENTS:
 Return ONLY valid JSON matching the schema in your instructions. No markdown, no code blocks."""
 
     try:
-        raw = call_ai(system_prompt, user_prompt, args.provider, args.model, api_key)
+        raw = call_ai(system_prompt, user_prompt, args.provider, args.model, effective_key)
         parsed = json.loads(raw)
         print(json.dumps(parsed, indent=2))
     except json.JSONDecodeError:
