@@ -101,7 +101,9 @@ jobs:
         uses: subzone/ssdlc-action@main
         with:
           license-key:               ${{ secrets.SSDLC_LICENSE_KEY }}
-          ai-api-key:                ${{ secrets.ANTHROPIC_API_KEY }}
+          ai-provider:               'github'
+          ai-model:                  'gpt-4o-mini'
+          github-token:              ${{ secrets.GITHUB_TOKEN }}
 
           # ── Scanners ────────────────────────────────────────────────
           enable-sast:               'true'
