@@ -65,6 +65,11 @@ inputs:
     required: false
     default: ''
 
+  trivy-ignore-unfixed:
+    description: 'For the container image scan path (trivy image) only: skip CVEs that have no fix available in the OS package manager to reduce noise from won''t-fix entries in base images. Does not affect Trivy filesystem/SCA scans (trivy fs).'
+    required: false
+    default: 'false'
+
   enable-threat-modeling:
     description: 'Run AI-powered STRIDE threat modeling on architecture changes'
     required: false
@@ -167,8 +172,9 @@ runs:
     ENABLE_SECRET_SCAN:   ${{ inputs.enable-secret-scan }}
     ENABLE_SCA:           ${{ inputs.enable-sca }}
     ENABLE_IAC:           ${{ inputs.enable-iac-scan }}
-    ENABLE_CONTAINER:     ${{ inputs.enable-container-scan }}
-    CONTAINER_IMAGE:      ${{ inputs.container-image }}
+    ENABLE_CONTAINER:         ${{ inputs.enable-container-scan }}
+    CONTAINER_IMAGE:          ${{ inputs.container-image }}
+    TRIVY_IGNORE_UNFIXED:     ${{ inputs.trivy-ignore-unfixed }}
     ENABLE_THREAT_MODEL:  ${{ inputs.enable-threat-modeling }}
     ENABLE_AI_TRIAGE:     ${{ inputs.enable-ai-triage }}
     ENABLE_AI_FIXES:      ${{ inputs.enable-ai-fix-suggestions }}
