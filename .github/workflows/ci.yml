@@ -11,6 +11,11 @@
 # On version tag pushes (triggered by release.yml), a create-release job
 # runs after a successful image push to publish the GitHub Release.
 # This ensures a broken build never produces a published release.
+#
+# workflow_dispatch is required because GITHUB_TOKEN-pushed tags cannot
+# trigger new workflow runs (GitHub security restriction). release.yml pushes
+# the tag via GITHUB_TOKEN and then explicitly dispatches this workflow on
+# the tag ref so the full build + release pipeline runs correctly.
 # =============================================================================
 
 name: Build & Push
@@ -21,6 +26,14 @@ on:
     tags: ['v*.*.*']
   pull_request:
     branches: [main]
+  # Explicitly dispatched by release.yml after pushing a version tag.
+  # Required because GITHUB_TOKEN-pushed tags cannot trigger push events.
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: 'Semver version without v prefix (e.g. 1.1.0) — set by release.yml'
+        required: false
+        default: ''
 
 env:
   REGISTRY: ghcr.io
@@ -56,8 +69,11 @@ jobs:
           tags: |
             # Branch builds → ghcr.io/subzone/ssdlc-action:main
             type=ref,event=branch
-            # Tag builds    → ghcr.io/subzone/ssdlc-action:v1.2.3
+            # Tag builds via push event → ghcr.io/subzone/ssdlc-action:1.2.3
             type=semver,pattern={{version}}
+            # Tag builds via workflow_dispatch (from release.yml) → :1.2.3
+            # Required because type=semver only activates on push events, not workflow_dispatch.
+            type=raw,value=${{ inputs.release_version }},enable=${{ inputs.release_version != '' }}
             # latest        → only on default branch (main)
             type=raw,value=latest,enable={{is_default_branch}}
 
@@ -147,7 +163,10 @@ jobs:
   create-release:
     name: Create GitHub Release
     needs: build-push
-    if: startsWith(github.ref, 'refs/tags/v')
+    # Runs on tag push events OR when dispatched by release.yml with a version input.
+    # Explicit inputs.release_version check avoids relying on github.ref for workflow_dispatch,
+    # where ref behaviour can differ from push-triggered runs.
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.release_version != '')
     runs-on: ubuntu-latest
 
     permissions:
@@ -159,11 +178,22 @@ jobs:
         with:
           fetch-depth: 0   # full history for auto-generated release notes
 
+      - name: Resolve release tag
+        id: resolve_tag
+        run: |
+          # workflow_dispatch: use the explicit version input passed by release.yml.
+          # push event: extract from github.ref_name (e.g. v1.1.0).
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ inputs.release_version }}" ]]; then
+            echo "tag=v${{ inputs.release_version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Detect pre-release
         id: prerelease
         run: |
           # Treat tags containing a hyphen suffix (e.g. v1.0.0-rc1) as pre-releases
-          if echo "${{ github.ref_name }}" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+-'; then
+          if echo "${{ steps.resolve_tag.outputs.tag }}" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+-'; then
             echo "is_prerelease=true"  >> "$GITHUB_OUTPUT"
           else
             echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
@@ -173,7 +203,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ github.ref_name }}" \
-            --title "${{ github.ref_name }}" \
+          gh release create "${{ steps.resolve_tag.outputs.tag }}" \
+            --title "${{ steps.resolve_tag.outputs.tag }}" \
             --generate-notes \
             ${{ steps.prerelease.outputs.is_prerelease == 'true' && '--prerelease' || '' }}
