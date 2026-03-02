@@ -16,20 +16,20 @@
 
 # CRITICAL — Go crypto/tls: session resumption bypass (CVSSv3: 10.0)
 # https://nvd.nist.gov/vuln/detail/CVE-2025-68121
-CVE-2025-68121
+CVE-2025-68121 # exp: 2026-09-01
 
 # HIGH — Go net/url: unbounded query-parameter parsing causes memory exhaustion
 # https://nvd.nist.gov/vuln/detail/CVE-2025-61726
-CVE-2025-61726
+CVE-2025-61726 # exp: 2026-09-01
 
 # HIGH — Go stdlib (related net/* / crypto/* group, filed 2025-Q4)
 # https://nvd.nist.gov/vuln/detail/CVE-2025-61728
-CVE-2025-61728
+CVE-2025-61728 # exp: 2026-09-01
 
 # HIGH — Go stdlib (related net/* / crypto/* group, filed 2025-Q4)
 # https://nvd.nist.gov/vuln/detail/CVE-2025-61729
-CVE-2025-61729
+CVE-2025-61729 # exp: 2026-09-01
 
 # HIGH — Go stdlib (related net/* / crypto/* group, filed 2025-Q4)
 # https://nvd.nist.gov/vuln/detail/CVE-2025-61730
-CVE-2025-61730
+CVE-2025-61730 # exp: 2026-09-01
