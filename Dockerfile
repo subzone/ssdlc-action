@@ -15,7 +15,7 @@ ENV PATH="/root/.local/bin:/usr/local/go/bin:$PATH"
 # nodejs/npm excluded — not used by any scanner or script (Semgrep 1.x
 # is pure Python; Gitleaks and Trivy are standalone binaries).
 # wget/unzip excluded — curl covers all download needs.
-# apt-get upgrade applies all available Debian security backports.
+# apt-get upgrade applies all available package updates from the configured APT repositories (including security updates).
 RUN apt-get update \
     && apt-get upgrade -y --no-install-recommends \
     && apt-get install -y --no-install-recommends \
