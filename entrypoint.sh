@@ -256,6 +256,16 @@ if [[ "${POST_PR_COMMENT:-true}" == "true" ]] && [[ -n "${GITHUB_TOKEN:-}" ]]; t
     --pr-number "${PR_NUMBER:-}" 2>/dev/null || warn "PR comment failed"
 fi
 
+# Upload findings.json as a GitHub Actions artifact so the SSDLC platform
+# dashboard can retrieve and display per-run vulnerability details via the
+# GitHub Artifacts REST API.  Fails gracefully — a failed upload is logged
+# as a warning but never blocks the workflow or changes the exit code.
+if [[ -n "${ACTIONS_RUNTIME_TOKEN:-}" ]]; then
+  log "Uploading findings artifact for platform dashboard..."
+  python3 /action/src/reporters/upload_artifact.py "${FINDINGS_FILE}" "ssdlc-findings" \
+    || warn "Artifact upload failed — findings may not appear in the platform dashboard"
+fi
+
 # =============================================================================
 # PHASE 10 — SET OUTPUTS & EXIT
 # =============================================================================
