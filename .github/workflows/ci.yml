@@ -92,6 +92,7 @@ jobs:
       contents:        read
       security-events: write   # SARIF upload to GitHub Security tab
       pull-requests:   write   # Post AI summary as PR comment
+      models:          read    # GitHub Models AI inference
 
     steps:
       - name: Checkout
