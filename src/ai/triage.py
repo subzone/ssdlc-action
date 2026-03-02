@@ -59,28 +59,28 @@ def main():
         sys.exit(1)
 
     findings = json.loads(findings_path.read_text())
-    if not findings:
-        result = {
-            "risk_rating": "pass",
-            "executive_summary": "No security findings were detected across all enabled scanners. Well architected!",
-            "true_positive_count": 0,
-            "false_positive_count": 0,
-            "top_findings": [],
-            "quick_wins": [],
-            "waf_summary": "All scanned controls passed.",
-        }
-        print(json.dumps(result, indent=2))
-        return
-
-    # Limit findings sent to AI (cost control) — top 50 by severity
-    SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
-    findings_sorted = sorted(findings, key=lambda f: SEVERITY_ORDER.get(f.get("severity", "low"), 4))
-    findings_sample = findings_sorted[:50]
 
     system_prompt_path = Path("/action/src/ai/prompts/triage_system.txt")
     system_prompt = system_prompt_path.read_text() if system_prompt_path.exists() else ""
 
-    user_prompt = f"""Please analyse these {len(findings)} security findings from an automated SSDLC scan.
+    if not findings:
+        user_prompt = f"""All enabled security scanners completed with zero findings.
+Cloud provider: {args.cloud}
+Scanners run: SAST (Semgrep), Secret Scanning (Gitleaks), SCA (dependency audit), IaC (Checkov).
+
+Please provide a brief security assurance summary confirming the clean scan result, and include
+any proactive hardening recommendations relevant to a {args.cloud}-hosted application.
+
+Return ONLY valid JSON with this exact structure:
+{{"risk_rating": "pass", "executive_summary": "...", "true_positive_count": 0, "false_positive_count": 0, "top_findings": [], "quick_wins": [...], "waf_summary": "..."}}
+No markdown, no code blocks."""
+    else:
+        # Limit findings sent to AI (cost control) — top 50 by severity
+        SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+        findings_sorted = sorted(findings, key=lambda f: SEVERITY_ORDER.get(f.get("severity", "low"), 4))
+        findings_sample = findings_sorted[:50]
+
+        user_prompt = f"""Please analyse these {len(findings)} security findings from an automated SSDLC scan.
 Cloud provider: {args.cloud}
 Total findings: {len(findings)}
 Sending top {len(findings_sample)} by severity for analysis.
