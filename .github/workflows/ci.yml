@@ -1,5 +1,5 @@
 # =============================================================================
-# ssdlc-action — CI: Build & Push + Enterprise Self-Scan
+# ssdlc-action — CI: Build & Push + Enterprise Self-Scan + Release
 # Builds the action Docker image and pushes to GHCR on every merge to main
 # and on every tagged release. This pre-built image is referenced by action.yml
 # so client workflows skip the ~10-minute local Docker build entirely.
@@ -7,6 +7,10 @@
 # After building, the repo scans itself using the full enterprise licence so
 # every commit and PR is gated by SAST, secret scan, SCA, IaC, container scan
 # and AI threat modelling before it can ship to customers.
+#
+# On version tag pushes (triggered by release.yml), a create-release job
+# runs after a successful image push to publish the GitHub Release.
+# This ensures a broken build never produces a published release.
 # =============================================================================
 
 name: Build & Push
@@ -133,3 +137,43 @@ jobs:
           post-pr-comment:           'true'
           sarif-upload:              'true'
           cloud-provider:            'aws'
+
+  # ---------------------------------------------------------------------------
+  # GitHub Release — only on version tag pushes, after image build succeeds.
+  # Triggered by release.yml pushing a vX.Y.Z tag. Creating the release here
+  # (rather than in release.yml) guarantees the Docker image exists before the
+  # release is published — a failed image build leaves no broken release.
+  # ---------------------------------------------------------------------------
+  create-release:
+    name: Create GitHub Release
+    needs: build-push
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write   # create GitHub Release
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history for auto-generated release notes
+
+      - name: Detect pre-release
+        id: prerelease
+        run: |
+          # Treat tags containing a hyphen suffix (e.g. v1.0.0-rc1) as pre-releases
+          if echo "${{ github.ref_name }}" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+-'; then
+            echo "is_prerelease=true"  >> "$GITHUB_OUTPUT"
+          else
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --title "${{ github.ref_name }}" \
+            --generate-notes \
+            ${{ steps.prerelease.outputs.is_prerelease == 'true' && '--prerelease' || '' }}

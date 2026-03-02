@@ -2,17 +2,22 @@
 # ssdlc-action — Release Workflow
 #
 # Creates a properly versioned release:
-#   1. Patches action.yml image tag from :main → :vX.Y.Z (ephemeral commit)
-#   2. Pushes ONLY the git tag (not the patched commit to main)
-#   3. The ci.yml Build & Push job triggers on the tag → builds :vX.Y.Z image
-#   4. Creates a GitHub Release with auto-generated release notes
+#   1. Validates version format and that the tag doesn't already exist
+#   2. Patches action.yml image tag from :main → :<version> (ephemeral commit)
+#   3. Pushes ONLY the git tag (not the patched commit to main)
+#   4. ci.yml triggers on the tag → builds + pushes the versioned Docker image
+#   5. ci.yml create-release job creates the GitHub Release after a successful
+#      image push — so a broken build cannot produce a published release
 #
 # Why ephemeral commit?
 #   action.yml on `main` always uses :main so branch builds stay in sync.
-#   The tagged commit has :vX.Y.Z so `uses: subzone/ssdlc-action@vX.Y.Z`
+#   The tagged commit has :<version> so `uses: subzone/ssdlc-action@vX.Y.Z`
 #   pulls the correct, immutable Docker image — not whatever :main is today.
 #
-# Usage: Actions → Release → Run workflow → enter version (e.g. 1.1.0)
+# Docker tag convention: no `v` prefix (1.1.0, not v1.1.0).
+# Git tag convention:    `v` prefix  (v1.1.0).
+#
+# Usage: Actions → Release → Run workflow (from main) → enter version (e.g. 1.1.0)
 # =============================================================================
 
 name: Release
@@ -24,11 +29,6 @@ on:
         description: 'Version to release — semver without the v prefix (e.g. 1.1.0)'
         required: true
         type: string
-      prerelease:
-        description: 'Mark as pre-release?'
-        required: false
-        default: false
-        type: boolean
 
 jobs:
   release:
@@ -36,22 +36,29 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write   # push tag + create GitHub Release
+      contents: write   # push tag
 
     steps:
+      - name: Validate workflow runs on main
+        run: |
+          if [[ "${{ github.ref_name }}" != "main" ]]; then
+            echo "::error::Release workflow must be triggered from main, got: ${{ github.ref_name }}"
+            exit 1
+          fi
+
       - name: Checkout main
         uses: actions/checkout@v4
         with:
-          # Need full history so auto-generated release notes span all commits
-          fetch-depth: 0
+          ref: main           # always checkout main regardless of dispatch source
+          fetch-depth: 0      # full history for release notes
 
       - name: Validate version format
         run: |
-          if ! echo "${{ inputs.version }}" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-            echo "::error::Version must be semver without 'v' prefix (e.g. 1.1.0)"
+          if ! echo "${{ inputs.version }}" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$'; then
+            echo "::error::Version must be semver without 'v' prefix (e.g. 1.1.0 or 1.1.0-rc1)"
             exit 1
           fi
-          echo "Releasing v${{ inputs.version }}"
+          echo "Releasing v${{ inputs.version }} — Docker image tag: ${{ inputs.version }}"
 
       - name: Check tag does not already exist
         run: |
@@ -66,12 +73,18 @@ jobs:
             echo "::error::action.yml not found in repository root"
             exit 1
           fi
-          sed -i \
-            "s|docker://ghcr.io/subzone/ssdlc-action:main|docker://ghcr.io/subzone/ssdlc-action:v${{ inputs.version }}|" \
-            action.yml
-          # Verify the substitution actually happened
-          if ! grep -q "ssdlc-action:v${{ inputs.version }}" action.yml; then
-            echo "::error::Substitution failed — is action.yml already patched, or does :main not appear?"
+          OLD_IMAGE="docker://ghcr.io/subzone/ssdlc-action:main"
+          NEW_IMAGE="docker://ghcr.io/subzone/ssdlc-action:${{ inputs.version }}"
+          sed -i "s|${OLD_IMAGE}|${NEW_IMAGE}|" action.yml
+          # Verify new image tag is present
+          if ! grep -q "${NEW_IMAGE}" action.yml; then
+            echo "::error::Substitution failed — new image tag not found. Was :main already patched?"
+            grep "image:" action.yml
+            exit 1
+          fi
+          # Verify old :main tag is gone
+          if grep -q "${OLD_IMAGE}" action.yml; then
+            echo "::error::action.yml still references :main after substitution"
             grep "image:" action.yml
             exit 1
           fi
@@ -92,15 +105,7 @@ jobs:
 
       - name: Push tag only (keep main clean)
         run: |
-          # Push the tag — this triggers ci.yml Build & Push to publish :vX.Y.Z
-          # The release commit is NOT pushed to main; action.yml on main stays :main
+          # Push the tag — triggers ci.yml which builds :${{ inputs.version }} and
+          # creates the GitHub Release only after a successful image push.
+          # The release commit is NOT pushed to main; action.yml on main stays :main.
           git push origin "v${{ inputs.version }}"
-
-      - name: Create GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create "v${{ inputs.version }}" \
-            --title "v${{ inputs.version }}" \
-            --generate-notes \
-            ${{ inputs.prerelease && '--prerelease' || '' }}
