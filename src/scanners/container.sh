@@ -20,6 +20,14 @@ if [[ "${IGNORE_UNFIXED}" == "true" ]]; then
   echo "[CONTAINER] --ignore-unfixed: skipping CVEs with no available fix"
 fi
 
+# Respect a .trivyignore in the workspace root (user-supplied accepted-risk list)
+WORKSPACE="${GITHUB_WORKSPACE:-/github/workspace}"
+IGNOREFILE="${WORKSPACE}/.trivyignore"
+if [[ -f "${IGNOREFILE}" ]]; then
+  EXTRA_FLAGS+=("--ignorefile" "${IGNOREFILE}")
+  echo "[CONTAINER][WARNING] Scan results are being filtered by ignore file: ${IGNOREFILE} (changes to this file in PRs can hide findings)"
+fi
+
 trivy image \
   --format json \
   --output "${OUTPUT_FILE}" \
