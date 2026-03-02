@@ -24,7 +24,7 @@ trivy image \
   --format json \
   --output "${OUTPUT_FILE}" \
   --exit-code 0 \
-  "${EXTRA_FLAGS[@]}" \
+  ${EXTRA_FLAGS[@]+"${EXTRA_FLAGS[@]}"} \
   "${IMAGE}" 2>/dev/null || true
 
 # Normalise
