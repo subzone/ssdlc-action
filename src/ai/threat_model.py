@@ -69,13 +69,6 @@ def get_repo_arch_files(workspace: str) -> list[str]:
 
     return (priority + rest)[:MAX_FILES]
 
-def read_file_content(path: str, workspace: str) -> str:
-    full = Path(workspace) / path
-    if not full.exists():
-        return ""
-    content = full.read_text(errors="replace")
-    return content[:MAX_FILE_SIZE]
-
 def call_ai(system_prompt: str, user_prompt: str, provider: str, model: str, api_key: str) -> str:
     if provider.lower() == "anthropic":
         import anthropic
