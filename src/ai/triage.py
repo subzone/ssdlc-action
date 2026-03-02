@@ -35,6 +35,22 @@ def call_openai(system_prompt: str, user_prompt: str, model: str, api_key: str) 
     )
     return response.choices[0].message.content
 
+def call_github_models(system_prompt: str, user_prompt: str, model: str, github_token: str) -> str:
+    import openai
+    client = openai.OpenAI(
+        base_url="https://models.inference.ai.azure.com",
+        api_key=github_token,
+    )
+    response = client.chat.completions.create(
+        model=model,
+        max_tokens=4096,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user",   "content": user_prompt},
+        ],
+    )
+    return response.choices[0].message.content
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
@@ -94,6 +110,8 @@ Return ONLY valid JSON matching the schema in your instructions. No markdown, no
     try:
         if args.provider.lower() == "anthropic":
             raw = call_anthropic(system_prompt, user_prompt, args.model, api_key)
+        elif args.provider.lower() == "github":
+            raw = call_github_models(system_prompt, user_prompt, args.model, api_key)
         else:
             raw = call_openai(system_prompt, user_prompt, args.model, api_key)
 

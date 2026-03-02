@@ -9,18 +9,24 @@ branding:
 inputs:
   # ── AI Provider ────────────────────────────────────────────────
   ai-api-key:
-    description: 'Anthropic or OpenAI API key for AI-powered analysis'
-    required: true
+    description: 'API key for the AI provider. Anthropic/OpenAI: their respective key. GitHub Models: pass secrets.GITHUB_TOKEN (no external account needed).'
+    required: false
+    default: ''
 
   ai-provider:
-    description: 'AI provider to use: anthropic | openai'
+    description: 'AI provider: anthropic | openai | github (GitHub Models — free, uses GITHUB_TOKEN)'
     required: false
     default: 'anthropic'
 
   ai-model:
-    description: 'Model to use (e.g. claude-sonnet-4-6 or gpt-4o)'
+    description: 'Model to use. Anthropic: claude-sonnet-4-6. OpenAI: gpt-4o. GitHub Models: gpt-4o-mini'
     required: false
     default: 'claude-sonnet-4-6'
+
+  github-token:
+    description: 'GitHub token for SARIF upload, PR comments, and GitHub Models AI. Pass secrets.GITHUB_TOKEN.'
+    required: false
+    default: ''
 
   # ── License / Tier ─────────────────────────────────────────────
   license-key:
@@ -174,4 +180,4 @@ runs:
     SEMGREP_RULES:        ${{ inputs.semgrep-rules }}
     CHECKOV_FRAMEWORK:    ${{ inputs.checkov-framework }}
     OUTPUT_DIR:           ${{ inputs.output-dir }}
-    GITHUB_TOKEN:         ${{ github.token }}
+    GITHUB_TOKEN:         ${{ inputs.github-token }}

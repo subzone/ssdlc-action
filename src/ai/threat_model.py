@@ -86,6 +86,20 @@ def call_ai(system_prompt: str, user_prompt: str, provider: str, model: str, api
             messages=[{"role": "user", "content": user_prompt}],
         )
         return msg.content[0].text
+    elif provider.lower() == "github":
+        import openai
+        client = openai.OpenAI(
+            base_url="https://models.inference.ai.azure.com",
+            api_key=api_key,
+        )
+        resp = client.chat.completions.create(
+            model=model, max_tokens=4096,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user",   "content": user_prompt},
+            ],
+        )
+        return resp.choices[0].message.content
     else:
         import openai
         client = openai.OpenAI(api_key=api_key)
