@@ -25,7 +25,7 @@ WORKSPACE="${GITHUB_WORKSPACE:-/github/workspace}"
 IGNOREFILE="${WORKSPACE}/.trivyignore"
 if [[ -f "${IGNOREFILE}" ]]; then
   EXTRA_FLAGS+=("--ignorefile" "${IGNOREFILE}")
-  echo "[CONTAINER] Using ignore file: ${IGNOREFILE}"
+  echo "[CONTAINER][WARNING] Scan results are being filtered by ignore file: ${IGNOREFILE} (changes to this file in PRs can hide findings)"
 fi
 
 trivy image \
