@@ -62,16 +62,31 @@ jobs:
 
       - name: Patch action.yml image tag for release
         run: |
+          if [[ ! -f action.yml ]]; then
+            echo "::error::action.yml not found in repository root"
+            exit 1
+          fi
           sed -i \
             "s|docker://ghcr.io/subzone/ssdlc-action:main|docker://ghcr.io/subzone/ssdlc-action:v${{ inputs.version }}|" \
             action.yml
-          grep "image:" action.yml   # confirm the substitution
+          # Verify the substitution actually happened
+          if ! grep -q "ssdlc-action:v${{ inputs.version }}" action.yml; then
+            echo "::error::Substitution failed — is action.yml already patched, or does :main not appear?"
+            grep "image:" action.yml
+            exit 1
+          fi
+          grep "image:" action.yml   # log confirmed value
 
       - name: Create tagged release commit
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add action.yml
+          # Guard: fail fast if sed made no change (nothing staged)
+          if git diff --cached --quiet; then
+            echo "::error::action.yml was not modified — sed substitution may have failed"
+            exit 1
+          fi
           git commit -m "chore: release v${{ inputs.version }}"
           git tag "v${{ inputs.version }}"
 
