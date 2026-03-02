@@ -1,0 +1,133 @@
+# =============================================================================
+# ssdlc-action — Release Workflow
+#
+# Creates a properly versioned release:
+#   1. Validates version format and that the tag doesn't already exist
+#   2. Patches action.yml image tag from :main → :<version> (ephemeral commit)
+#   3. Pushes ONLY the git tag (not the patched commit to main)
+#   4. Explicitly dispatches ci.yml on the tag ref via REST API
+#      (GITHUB_TOKEN-pushed tags cannot trigger push events — GitHub restriction)
+#   5. ci.yml build-push job builds + pushes the versioned Docker image
+#   6. ci.yml create-release job creates the GitHub Release after a successful
+#      image push — so a broken build cannot produce a published release
+#
+# Why ephemeral commit?
+#   action.yml on `main` always uses :main so branch builds stay in sync.
+#   The tagged commit has :<version> so `uses: subzone/ssdlc-action@vX.Y.Z`
+#   pulls the correct, immutable Docker image — not whatever :main is today.
+#
+# Docker tag convention: no `v` prefix (1.1.0, not v1.1.0).
+# Git tag convention:    `v` prefix  (v1.1.0).
+#
+# Usage: Actions → Release → Run workflow (from main) → enter version (e.g. 1.1.0)
+# =============================================================================
+
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release — semver without the v prefix (e.g. 1.1.0)'
+        required: true
+        type: string
+
+jobs:
+  release:
+    name: Tag & Publish
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write   # push tag
+      actions:  write   # dispatch Build & Push workflow on the tag ref
+
+    steps:
+      - name: Validate workflow runs on main
+        run: |
+          if [[ "${{ github.ref_name }}" != "main" ]]; then
+            echo "::error::Release workflow must be triggered from main, got: ${{ github.ref_name }}"
+            exit 1
+          fi
+
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main           # always checkout main regardless of dispatch source
+          fetch-depth: 0      # full history for release notes
+
+      - name: Validate version format
+        run: |
+          if ! echo "${{ inputs.version }}" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$'; then
+            echo "::error::Version must be semver without 'v' prefix (e.g. 1.1.0 or 1.1.0-rc1)"
+            exit 1
+          fi
+          echo "Releasing v${{ inputs.version }} — Docker image tag: ${{ inputs.version }}"
+
+      - name: Check tag does not already exist
+        run: |
+          if git ls-remote --tags origin "refs/tags/v${{ inputs.version }}" | grep -q "v${{ inputs.version }}"; then
+            echo "::error::Tag v${{ inputs.version }} already exists"
+            exit 1
+          fi
+
+      - name: Patch action.yml image tag for release
+        run: |
+          if [[ ! -f action.yml ]]; then
+            echo "::error::action.yml not found in repository root"
+            exit 1
+          fi
+          OLD_IMAGE="docker://ghcr.io/subzone/ssdlc-action:main"
+          NEW_IMAGE="docker://ghcr.io/subzone/ssdlc-action:${{ inputs.version }}"
+          sed -i "s|${OLD_IMAGE}|${NEW_IMAGE}|" action.yml
+          # Verify new image tag is present
+          if ! grep -q "${NEW_IMAGE}" action.yml; then
+            echo "::error::Substitution failed — new image tag not found. Was :main already patched?"
+            grep "image:" action.yml
+            exit 1
+          fi
+          # Verify old :main tag is gone
+          if grep -q "${OLD_IMAGE}" action.yml; then
+            echo "::error::action.yml still references :main after substitution"
+            grep "image:" action.yml
+            exit 1
+          fi
+          grep "image:" action.yml   # log confirmed value
+
+      - name: Create tagged release commit
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add action.yml
+          # Guard: fail fast if sed made no change (nothing staged)
+          if git diff --cached --quiet; then
+            echo "::error::action.yml was not modified — sed substitution may have failed"
+            exit 1
+          fi
+          git commit -m "chore: release v${{ inputs.version }}"
+          git tag "v${{ inputs.version }}"
+
+      - name: Push tag only (keep main clean)
+        run: |
+          # Push the tag only — the release commit is NOT pushed to main so
+          # action.yml on main stays :main for branch builds.
+          # Note: GITHUB_TOKEN-pushed tags cannot trigger new workflow runs
+          # (GitHub security restriction), so we dispatch ci.yml explicitly below.
+          git push origin "v${{ inputs.version }}"
+
+      - name: Trigger Build & Push workflow on tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # GITHUB_TOKEN push events cannot trigger subsequent workflow runs
+          # (GitHub security restriction to prevent recursive loops).
+          # Dispatching via the REST API bypasses this restriction.
+          # Passes release_version so ci.yml can produce correct Docker tags and
+          # create the GitHub Release without relying on github.ref in workflow_dispatch context.
+          if ! gh workflow run "Build & Push" \
+            --repo "${{ github.repository }}" \
+            --ref "v${{ inputs.version }}" \
+            --field "release_version=${{ inputs.version }}"; then
+            echo "::error::Failed to dispatch Build & Push workflow for v${{ inputs.version }}"
+            exit 1
+          fi
+          echo "Triggered Build & Push for v${{ inputs.version }} (release_version=${{ inputs.version }})"
