@@ -35,21 +35,26 @@ def call_openai(system_prompt: str, user_prompt: str, model: str, api_key: str) 
     )
     return response.choices[0].message.content
 
-def call_github_models(system_prompt: str, user_prompt: str, model: str, github_token: str) -> str:
+def call_github_models(system_prompt: str, user_prompt: str, model: str, api_key: str) -> str:
     import openai
-    client = openai.OpenAI(
-        base_url="https://models.inference.ai.azure.com",
-        api_key=github_token,
-    )
-    response = client.chat.completions.create(
-        model=model,
-        max_tokens=4096,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user",   "content": user_prompt},
-        ],
-    )
-    return response.choices[0].message.content
+    try:
+        client = openai.OpenAI(
+            base_url="https://models.inference.ai.azure.com",
+            api_key=api_key,
+        )
+        response = client.chat.completions.create(
+            model=model,
+            max_tokens=4096,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user",   "content": user_prompt},
+            ],
+        )
+        return response.choices[0].message.content
+    except openai.AuthenticationError as e:
+        raise RuntimeError(
+            f"GitHub Models authentication failed. Ensure GITHUB_TOKEN has required permissions: {e}"
+        ) from e
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
