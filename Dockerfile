@@ -28,7 +28,7 @@ RUN apt-get update \
 
 # ── Python tooling ────────────────────────────────────────────────
 # Upgrade pip + setuptools first — fixes CVE-2024-6345 (setuptools HIGH)
-# and ensures all subsequent installs resolve against the latest index.
+# and ensures subsequent installs use the latest pip/setuptools features and security fixes.
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
 RUN pip install --no-cache-dir \
