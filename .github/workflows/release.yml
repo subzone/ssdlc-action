@@ -5,8 +5,10 @@
 #   1. Validates version format and that the tag doesn't already exist
 #   2. Patches action.yml image tag from :main → :<version> (ephemeral commit)
 #   3. Pushes ONLY the git tag (not the patched commit to main)
-#   4. ci.yml triggers on the tag → builds + pushes the versioned Docker image
-#   5. ci.yml create-release job creates the GitHub Release after a successful
+#   4. Explicitly dispatches ci.yml on the tag ref via REST API
+#      (GITHUB_TOKEN-pushed tags cannot trigger push events — GitHub restriction)
+#   5. ci.yml build-push job builds + pushes the versioned Docker image
+#   6. ci.yml create-release job creates the GitHub Release after a successful
 #      image push — so a broken build cannot produce a published release
 #
 # Why ephemeral commit?
@@ -37,6 +39,7 @@ jobs:
 
     permissions:
       contents: write   # push tag
+      actions:  write   # dispatch Build & Push workflow on the tag ref
 
     steps:
       - name: Validate workflow runs on main
@@ -105,7 +108,26 @@ jobs:
 
       - name: Push tag only (keep main clean)
         run: |
-          # Push the tag — triggers ci.yml which builds :${{ inputs.version }} and
-          # creates the GitHub Release only after a successful image push.
-          # The release commit is NOT pushed to main; action.yml on main stays :main.
+          # Push the tag only — the release commit is NOT pushed to main so
+          # action.yml on main stays :main for branch builds.
+          # Note: GITHUB_TOKEN-pushed tags cannot trigger new workflow runs
+          # (GitHub security restriction), so we dispatch ci.yml explicitly below.
           git push origin "v${{ inputs.version }}"
+
+      - name: Trigger Build & Push workflow on tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # GITHUB_TOKEN push events cannot trigger subsequent workflow runs
+          # (GitHub security restriction to prevent recursive loops).
+          # Dispatching via the REST API bypasses this restriction.
+          # Passes release_version so ci.yml can produce correct Docker tags and
+          # create the GitHub Release without relying on github.ref in workflow_dispatch context.
+          if ! gh workflow run "Build & Push" \
+            --repo "${{ github.repository }}" \
+            --ref "v${{ inputs.version }}" \
+            --field "release_version=${{ inputs.version }}"; then
+            echo "::error::Failed to dispatch Build & Push workflow for v${{ inputs.version }}"
+            exit 1
+          fi
+          echo "Triggered Build & Push for v${{ inputs.version }} (release_version=${{ inputs.version }})"
