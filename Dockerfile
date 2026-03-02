@@ -12,14 +12,13 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV PATH="/root/.local/bin:/usr/local/go/bin:$PATH"
 
 # ── System dependencies ───────────────────────────────────────────
+# nodejs/npm excluded — not used by any scanner or script (Semgrep 1.x
+# is pure Python; Gitleaks and Trivy are standalone binaries).
+# wget/unzip excluded — curl covers all download needs.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
-    wget \
     jq \
-    unzip \
-    nodejs \
-    npm \
     ca-certificates \
     gnupg \
     && rm -rf /var/lib/apt/lists/*
@@ -48,7 +47,7 @@ RUN GITLEAKS_VERSION="8.30.0" && \
 # ── Trivy (container + IaC + SCA scanning) ────────────────────────
 # Use the official Trivy apt repo — avoids hardcoding release URLs that
 # can 404 when GitHub asset naming changes between versions.
-RUN wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key \
+RUN curl -fsSL https://aquasecurity.github.io/trivy-repo/deb/public.key \
     | gpg --dearmor \
     | tee /usr/share/keyrings/trivy.gpg > /dev/null && \
     echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" \
