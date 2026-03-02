@@ -44,7 +44,7 @@ def call_github_models(system_prompt: str, user_prompt: str, model: str, api_key
         )
         response = client.chat.completions.create(
             model=model,
-            max_tokens=4096,
+            max_tokens=2048,   # GitHub Models free tier: 8k total token budget
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user",   "content": user_prompt},
@@ -101,10 +101,11 @@ Return ONLY valid JSON with this exact structure:
 {{"risk_rating": "pass", "executive_summary": "...", "true_positive_count": 0, "false_positive_count": 0, "top_findings": [], "quick_wins": [...], "waf_summary": "..."}}
 No markdown, no code blocks."""
     else:
-        # Limit findings sent to AI (cost control) — top 50 by severity
+        # Limit findings sent to AI — fewer for GitHub Models (8k token budget)
+        max_findings = 10 if args.provider.lower() == "github" else 50
         SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
         findings_sorted = sorted(findings, key=lambda f: SEVERITY_ORDER.get(f.get("severity", "low"), 4))
-        findings_sample = findings_sorted[:50]
+        findings_sample = findings_sorted[:max_findings]
 
         user_prompt = f"""Please analyse these {len(findings)} security findings from an automated SSDLC scan.
 Cloud provider: {args.cloud}

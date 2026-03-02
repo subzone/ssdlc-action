@@ -69,13 +69,6 @@ def get_repo_arch_files(workspace: str) -> list[str]:
 
     return (priority + rest)[:MAX_FILES]
 
-def read_file_content(path: str, workspace: str) -> str:
-    full = Path(workspace) / path
-    if not full.exists():
-        return ""
-    content = full.read_text(errors="replace")
-    return content[:MAX_FILE_SIZE]
-
 def call_ai(system_prompt: str, user_prompt: str, provider: str, model: str, api_key: str) -> str:
     if provider.lower() == "anthropic":
         import anthropic
@@ -94,7 +87,7 @@ def call_ai(system_prompt: str, user_prompt: str, provider: str, model: str, api
                 api_key=api_key,
             )
             resp = client.chat.completions.create(
-                model=model, max_tokens=4096,
+                model=model, max_tokens=2048,  # GitHub Models free tier: 8k total token budget
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user",   "content": user_prompt},
@@ -135,19 +128,31 @@ def main():
         print(json.dumps({"summary": "Threat modeling skipped — no API key."}))
         return
 
+    # GitHub Models free tier: 8k token budget — use tighter limits
+    if args.provider.lower() == "github":
+        effective_max_files     = 3
+        effective_max_file_size = 6_000
+    else:
+        effective_max_files     = MAX_FILES
+        effective_max_file_size = MAX_FILE_SIZE
+
     # Prefer PR-changed arch files; fall back to a full repo scan so threat
     # modeling always produces output even when no IaC/arch files were touched.
     arch_files = get_pr_changed_arch_files(args.workspace)
     if arch_files:
         scan_scope = "PR-changed files"
-        arch_files = arch_files[:MAX_FILES]
+        arch_files = arch_files[:effective_max_files]
     else:
         arch_files = get_repo_arch_files(args.workspace)
+        arch_files = arch_files[:effective_max_files]
         scan_scope = "full repository architecture scan (no IaC/arch files changed in this PR)"
 
     file_contents = {}
     for f in arch_files:
-        content = read_file_content(f, args.workspace)
+        full = Path(args.workspace) / f
+        if not full.exists():
+            continue
+        content = full.read_text(errors="replace")[:effective_max_file_size]
         if content:
             file_contents[f] = content
 
