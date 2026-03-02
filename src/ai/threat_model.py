@@ -13,18 +13,61 @@ from pathlib import Path
 ARCH_EXTENSIONS = {".tf", ".tfvars", ".yaml", ".yml", ".json", ".bicep",
                    ".template", ".hcl", ".md", ".drawio", ".puml"}
 MAX_FILE_SIZE   = 50_000   # chars — don't send huge files to AI
-MAX_FILES       = 10       # cap number of changed files sent
+MAX_FILES       = 10       # cap number of files sent to AI
 
-def get_changed_files(workspace: str) -> list[str]:
-    """Get files changed in the current PR/push."""
-    try:
-        result = subprocess.run(
-            ["git", "diff", "--name-only", "HEAD~1", "HEAD"],
-            capture_output=True, text=True, cwd=workspace
-        )
-        return [f.strip() for f in result.stdout.splitlines() if f.strip()]
-    except Exception:
-        return []
+# Directories to skip when walking the repo
+_EXCLUDE_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv",
+                 "dist", "build", ".cache", "coverage", ".mypy_cache",
+                 ".pytest_cache", ".ruff_cache"}
+
+def get_pr_changed_arch_files(workspace: str) -> list[str]:
+    """
+    Return arch/IaC files changed in this PR or push.
+    Tries the full PR range (origin/main...HEAD) first, then falls back to
+    the last commit (HEAD~1..HEAD).  Returns an empty list if neither yields
+    anything useful.
+    """
+    for ref in ("origin/main...HEAD", "HEAD~1..HEAD"):
+        try:
+            result = subprocess.run(
+                ["git", "diff", "--name-only", ref],
+                capture_output=True, text=True, cwd=workspace,
+            )
+            if result.returncode == 0:
+                files = [f.strip() for f in result.stdout.splitlines() if f.strip()]
+                arch = [f for f in files if Path(f).suffix.lower() in ARCH_EXTENSIONS]
+                if arch:
+                    return arch
+        except Exception:
+            pass
+    return []
+
+def get_repo_arch_files(workspace: str) -> list[str]:
+    """
+    Walk the repo and collect architecture/IaC files for a full-repo scan,
+    skipping noise directories.  Prioritises Terraform, Helm, Docker, CI files.
+    """
+    ws = Path(workspace)
+    # Priority file names collected first
+    priority_names = {"Chart.yaml", "values.yaml", "docker-compose.yml",
+                      "docker-compose.yaml", "action.yml", "action.yaml"}
+    priority: list[str] = []
+    rest: list[str] = []
+
+    for path in ws.rglob("*"):
+        if any(part in _EXCLUDE_DIRS for part in path.parts):
+            continue
+        if not path.is_file():
+            continue
+        if path.suffix.lower() not in ARCH_EXTENSIONS:
+            continue
+        rel = str(path.relative_to(ws))
+        if path.name in priority_names or path.suffix in {".tf", ".hcl"}:
+            priority.append(rel)
+        else:
+            rest.append(rel)
+
+    return (priority + rest)[:MAX_FILES]
 
 def read_file_content(path: str, workspace: str) -> str:
     full = Path(workspace) / path
@@ -68,26 +111,30 @@ def main():
         print(json.dumps({"summary": "Threat modeling skipped — no API key."}))
         return
 
-    changed = get_changed_files(args.workspace)
-    arch_files = [
-        f for f in changed
-        if Path(f).suffix.lower() in ARCH_EXTENSIONS
-    ][:MAX_FILES]
-
-    if not arch_files:
-        print(json.dumps({
-            "summary": "No architecture or IaC files changed in this PR.",
-            "overall_risk": "none",
-            "stride_analysis": {},
-            "recommended_actions": [],
-        }))
-        return
+    # Prefer PR-changed arch files; fall back to a full repo scan so threat
+    # modeling always produces output even when no IaC/arch files were touched.
+    arch_files = get_pr_changed_arch_files(args.workspace)
+    if arch_files:
+        scan_scope = "PR-changed files"
+        arch_files = arch_files[:MAX_FILES]
+    else:
+        arch_files = get_repo_arch_files(args.workspace)
+        scan_scope = "full repository architecture scan (no IaC/arch files changed in this PR)"
 
     file_contents = {}
     for f in arch_files:
         content = read_file_content(f, args.workspace)
         if content:
             file_contents[f] = content
+
+    if not file_contents:
+        print(json.dumps({
+            "summary": "No readable architecture or IaC files found in this repository.",
+            "overall_risk": "none",
+            "stride_analysis": {},
+            "recommended_actions": [],
+        }))
+        return
 
     system_prompt_path = Path("/action/src/ai/prompts/threat_model_system.txt")
     system_prompt = system_prompt_path.read_text() if system_prompt_path.exists() else ""
@@ -97,9 +144,10 @@ def main():
         for name, content in file_contents.items()
     )
 
-    user_prompt = f"""Please perform a STRIDE threat model analysis on these changed files.
+    user_prompt = f"""Please perform a STRIDE threat model analysis on these architecture/IaC files.
 Cloud provider: {args.cloud}
-Changed files ({len(arch_files)}): {', '.join(arch_files)}
+Scan scope: {scan_scope}
+Files analysed ({len(file_contents)}): {', '.join(file_contents.keys())}
 
 FILE CONTENTS:
 {files_text}
