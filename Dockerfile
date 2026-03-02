@@ -15,15 +15,22 @@ ENV PATH="/root/.local/bin:/usr/local/go/bin:$PATH"
 # nodejs/npm excluded — not used by any scanner or script (Semgrep 1.x
 # is pure Python; Gitleaks and Trivy are standalone binaries).
 # wget/unzip excluded — curl covers all download needs.
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
-    curl \
-    jq \
-    ca-certificates \
-    gnupg \
+# apt-get upgrade applies all available Debian security backports.
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && apt-get install -y --no-install-recommends \
+        git \
+        curl \
+        jq \
+        ca-certificates \
+        gnupg \
     && rm -rf /var/lib/apt/lists/*
 
-# ── Python security tooling ───────────────────────────────────────
+# ── Python tooling ────────────────────────────────────────────────
+# Upgrade pip + setuptools first — fixes CVE-2024-6345 (setuptools HIGH)
+# and ensures all subsequent installs resolve against the latest index.
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
 RUN pip install --no-cache-dir \
     semgrep \
     checkov \
