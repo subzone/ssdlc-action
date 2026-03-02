@@ -14,6 +14,7 @@ Usage:
 """
 import os
 import sys
+from urllib.parse import urlencode, urlparse
 
 import requests
 
@@ -56,20 +57,30 @@ def main() -> int:  # noqa: PLR0911
         timeout=30,
     )
     if create_resp.status_code not in (200, 201):
-        print(
-            f"Failed to create artifact container: "
-            f"{create_resp.status_code} {create_resp.text[:200]}"
-        )
+        # Log only the HTTP status — response body may contain auth tokens (CWE-532)
+        print(f"Failed to create artifact container: HTTP {create_resp.status_code}")
         return 1
 
-    container_url = create_resp.json().get("fileContainerResourceUrl", "")
+    try:
+        container_url = create_resp.json().get("fileContainerResourceUrl", "")
+    except ValueError:
+        print("Invalid JSON response from artifact create API — cannot upload")
+        return 1
+
     if not container_url:
         print("No fileContainerResourceUrl in artifact create response — cannot upload")
         return 1
 
     # ── Step 2: Upload file content ───────────────────────────────────────────
-    item_path  = "findings.json"
-    upload_url = f"{container_url}/{item_path}?itemPath={item_path}"
+    # Build the upload URL by appending the item path to the container URL's
+    # path segment and setting itemPath as the sole query param.  Using
+    # urllib.parse ensures existing query params in the container URL are not
+    # duplicated or malformed.
+    item_path = "findings.json"
+    parsed    = urlparse(container_url)
+    new_path  = parsed.path.rstrip("/") + "/" + item_path
+    upload_url = parsed._replace(path=new_path, query=urlencode({"itemPath": item_path})).geturl()
+
     upload_resp = requests.put(
         upload_url,
         headers={
@@ -81,10 +92,7 @@ def main() -> int:  # noqa: PLR0911
         timeout=60,
     )
     if upload_resp.status_code not in (200, 201):
-        print(
-            f"Failed to upload artifact file: "
-            f"{upload_resp.status_code} {upload_resp.text[:200]}"
-        )
+        print(f"Failed to upload artifact file: HTTP {upload_resp.status_code}")
         return 1
 
     # ── Step 3: Finalize (patch size) ─────────────────────────────────────────
@@ -97,10 +105,7 @@ def main() -> int:  # noqa: PLR0911
         timeout=30,
     )
     if finalize_resp.status_code not in (200, 201, 400):
-        print(
-            f"Warning: artifact finalize returned "
-            f"{finalize_resp.status_code} {finalize_resp.text[:200]}"
-        )
+        print(f"Warning: artifact finalize returned HTTP {finalize_resp.status_code}")
 
     print(
         f"Successfully uploaded {len(content):,} bytes "
