@@ -86,6 +86,25 @@ def call_ai(system_prompt: str, user_prompt: str, provider: str, model: str, api
             messages=[{"role": "user", "content": user_prompt}],
         )
         return msg.content[0].text
+    elif provider.lower() == "github":
+        import openai
+        try:
+            client = openai.OpenAI(
+                base_url="https://models.inference.ai.azure.com",
+                api_key=api_key,
+            )
+            resp = client.chat.completions.create(
+                model=model, max_tokens=4096,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user",   "content": user_prompt},
+                ],
+            )
+            return resp.choices[0].message.content
+        except openai.AuthenticationError as e:
+            raise RuntimeError(
+                f"GitHub Models authentication failed. Ensure GITHUB_TOKEN has required permissions: {e}"
+            ) from e
     else:
         import openai
         client = openai.OpenAI(api_key=api_key)
@@ -107,7 +126,12 @@ def main():
     args = parser.parse_args()
 
     api_key = os.environ.get("AI_API_KEY", "")
-    if not api_key:
+    # For GitHub Models, GITHUB_TOKEN is the credential; AI_API_KEY is a fallback
+    if args.provider.lower() == "github":
+        effective_key = os.environ.get("GITHUB_TOKEN", "") or api_key
+    else:
+        effective_key = api_key
+    if not effective_key:
         print(json.dumps({"summary": "Threat modeling skipped — no API key."}))
         return
 
@@ -155,7 +179,7 @@ FILE CONTENTS:
 Return ONLY valid JSON matching the schema in your instructions. No markdown, no code blocks."""
 
     try:
-        raw = call_ai(system_prompt, user_prompt, args.provider, args.model, api_key)
+        raw = call_ai(system_prompt, user_prompt, args.provider, args.model, effective_key)
         parsed = json.loads(raw)
         print(json.dumps(parsed, indent=2))
     except json.JSONDecodeError:

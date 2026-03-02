@@ -35,6 +35,27 @@ def call_openai(system_prompt: str, user_prompt: str, model: str, api_key: str) 
     )
     return response.choices[0].message.content
 
+def call_github_models(system_prompt: str, user_prompt: str, model: str, api_key: str) -> str:
+    import openai
+    try:
+        client = openai.OpenAI(
+            base_url="https://models.inference.ai.azure.com",
+            api_key=api_key,
+        )
+        response = client.chat.completions.create(
+            model=model,
+            max_tokens=4096,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user",   "content": user_prompt},
+            ],
+        )
+        return response.choices[0].message.content
+    except openai.AuthenticationError as e:
+        raise RuntimeError(
+            f"GitHub Models authentication failed. Ensure GITHUB_TOKEN has required permissions: {e}"
+        ) from e
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
@@ -47,7 +68,12 @@ def main():
     args = parser.parse_args()
 
     api_key = os.environ.get("AI_API_KEY", "")
-    if not api_key:
+    # For GitHub Models, GITHUB_TOKEN is the credential; AI_API_KEY is a fallback
+    if args.provider.lower() == "github":
+        effective_key = os.environ.get("GITHUB_TOKEN", "") or api_key
+    else:
+        effective_key = api_key
+    if not effective_key:
         print("No AI_API_KEY set — skipping AI triage", file=sys.stderr)
         print(json.dumps({"executive_summary": "AI triage skipped — no API key provided.",
                           "risk_rating": "unknown", "top_findings": [], "quick_wins": []}))
@@ -93,9 +119,11 @@ Return ONLY valid JSON matching the schema in your instructions. No markdown, no
 
     try:
         if args.provider.lower() == "anthropic":
-            raw = call_anthropic(system_prompt, user_prompt, args.model, api_key)
+            raw = call_anthropic(system_prompt, user_prompt, args.model, effective_key)
+        elif args.provider.lower() == "github":
+            raw = call_github_models(system_prompt, user_prompt, args.model, effective_key)
         else:
-            raw = call_openai(system_prompt, user_prompt, args.model, api_key)
+            raw = call_openai(system_prompt, user_prompt, args.model, effective_key)
 
         # Validate it's JSON
         parsed = json.loads(raw)
