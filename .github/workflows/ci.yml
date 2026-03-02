@@ -115,6 +115,10 @@ jobs:
           # main image; on push to main the build job just updated it.
           enable-container-scan:     'true'
           container-image:           'ghcr.io/subzone/ssdlc-action:main'
+          # python:3.12-slim has Debian won't-fix CVEs with no available patch.
+          # apt-get upgrade is already applied at build time; remaining entries
+          # are unfixed upstream. Skip them — they are not actionable.
+          trivy-ignore-unfixed:      'true'
 
           # ── Enterprise AI features ───────────────────────────────────
           enable-threat-modeling:    'true'

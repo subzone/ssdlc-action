@@ -148,7 +148,7 @@ if [[ "${ENABLE_CONTAINER:-false}" == "true" ]]; then
   else
     header "Container Scan (Trivy)"
     CONTAINER_OUT="${RESULTS_DIR}/container.json"
-    if /action/src/scanners/container.sh "${CONTAINER_IMAGE:-}" "${CONTAINER_OUT}"; then
+    if /action/src/scanners/container.sh "${CONTAINER_IMAGE:-}" "${CONTAINER_OUT}" "${TRIVY_IGNORE_UNFIXED:-false}"; then
       merge_findings "trivy-container" "${CONTAINER_OUT}"
       success "Container scan complete"
     else
