@@ -10,15 +10,39 @@
 
 ## Quick Start
 
-Add this to your repository's `.github/workflows/security.yml`:
+Add this to `.github/workflows/security.yml`. No API key required — GitHub Models is free.
 
 ```yaml
-- uses: subzone/ssdlc-action@v1
-  with:
-    ai-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+name: Security Scan
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents:        read
+  security-events: write   # SARIF upload
+  pull-requests:   write   # PR comment
+  models:          read    # GitHub Models (free AI)
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: SSDLC Security Scan
+        uses: subzone/ssdlc-action@v1
+        with:
+          github-token: ${{ github.token }}
+          ai-provider: github
 ```
 
-That's it. No tooling to install, no configuration required.
+> **Tip:** Always pin to `@v1` (or a specific release tag) in production — never use `@main`.
 
 ---
 
@@ -28,15 +52,15 @@ That's it. No tooling to install, no configuration required.
 |-------|------|:----:|:---:|:----------:|
 | Secret Scanning | Gitleaks | ✅ | ✅ | ✅ |
 | SAST | Semgrep | ✅ | ✅ | ✅ |
-| SCA (Dependencies) | Trivy | ❌ | ✅ | ✅ |
-| IaC Security | Checkov | ❌ | ✅ | ✅ |
+| SCA (Dependencies) | pip-audit / npm audit | ✅ | ✅ | ✅ |
+| IaC Security | Checkov | ✅ | ✅ | ✅ |
 | Container Scanning | Trivy | ❌ | ✅ | ✅ |
-| AI Finding Triage | Anthropic/OpenAI | ❌ | ✅ | ✅ |
-| AI Fix Suggestions | Anthropic/OpenAI | ❌ | ✅ | ✅ |
-| STRIDE Threat Modeling | Anthropic/OpenAI | ❌ | ❌ | ✅ |
-| WAF Control Mapping | Built-in | ❌ | ✅ | ✅ |
+| AI Finding Triage | GitHub Models / Claude / GPT | ✅ | ✅ | ✅ |
+| AI Fix Suggestions | GitHub Models / Claude / GPT | ✅ | ✅ | ✅ |
+| STRIDE Threat Modeling | GitHub Models / Claude / GPT | ❌ | ❌ | ✅ |
+| WAF Control Mapping | Built-in | ✅ | ✅ | ✅ |
 | SARIF Upload | GitHub Security tab | ✅ | ✅ | ✅ |
-| PR Comment | AI summary | ❌ | ✅ | ✅ |
+| PR Comment | AI summary | ✅ | ✅ | ✅ |
 
 ---
 
@@ -46,30 +70,34 @@ That's it. No tooling to install, no configuration required.
 
 | Input | Description |
 |-------|-------------|
-| `ai-api-key` | Anthropic or OpenAI API key |
+| `github-token` | Required for SARIF upload, PR comments, and GitHub Models. Use `${{ github.token }}`. |
 
 ### Optional
 
 | Input | Default | Description |
 |-------|---------|-------------|
-| `ai-provider` | `anthropic` | `anthropic` or `openai` |
-| `ai-model` | `claude-sonnet-4-5-20250929` | Model name |
-| `license-key` | *(empty)* | Signed SSDL1 Pro/Enterprise licence token |
-| `severity-threshold` | `high` | `critical`, `high`, `medium`, or `low` |
-| `fail-on-findings` | `true` | Block the workflow on findings |
-| `enable-sast` | `true` | Run Semgrep SAST |
-| `enable-secret-scan` | `true` | Run Gitleaks |
-| `enable-sca` | `true` | Run Trivy SCA |
-| `enable-iac-scan` | `true` | Run Checkov IaC scan |
-| `enable-container-scan` | `false` | Run Trivy container scan |
-| `container-image` | *(empty)* | Image to scan (if container scan enabled) |
-| `enable-threat-modeling` | `false` | Run STRIDE threat modeling |
-| `enable-ai-triage` | `true` | AI finding triage |
-| `enable-ai-fix-suggestions` | `true` | Include fix suggestions |
-| `cloud-provider` | `aws` | `aws`, `azure`, or `gcp` |
-| `semgrep-rules` | `auto` | Semgrep ruleset |
-| `post-pr-comment` | `true` | Post AI summary to PR |
-| `sarif-upload` | `true` | Upload to GitHub Security tab |
+| `ai-api-key` | *(empty)* | Anthropic or OpenAI API key. Not needed when using `ai-provider: github`. |
+| `ai-provider` | `github` | AI provider: `github` (zero-cost), `anthropic`, or `openai`. |
+| `ai-model` | `claude-sonnet-4-6` | Model name, e.g. `claude-sonnet-4-6` or `gpt-4o`. |
+| `license-key` | *(empty)* | Signed SSDL1 Pro/Enterprise licence token. |
+| `severity-threshold` | `high` | Minimum severity that fails the build: `critical`, `high`, `medium`, or `low`. |
+| `fail-on-findings` | `true` | Set to `false` to report findings without blocking the workflow. |
+| `enable-sast` | `true` | Run SAST scanning with Semgrep. |
+| `enable-secret-scan` | `true` | Run secret scanning with Gitleaks. |
+| `enable-sca` | `true` | Run Software Composition Analysis (pip-audit / npm audit). |
+| `enable-iac-scan` | `true` | Run IaC security scanning with Checkov. |
+| `enable-container-scan` | `false` | Run container image scan with Trivy. Requires `container-image`. |
+| `trivy-ignore-unfixed` | `false` | Ignore unfixed vulnerabilities in Trivy scans. |
+| `container-image` | *(empty)* | Container image to scan, e.g. `myapp:${{ github.sha }}`. |
+| `enable-threat-modeling` | `false` | Run AI-powered STRIDE threat modeling (Enterprise only). |
+| `enable-ai-triage` | `true` | Use AI to triage, deduplicate, and prioritise findings. |
+| `enable-ai-fix-suggestions` | `true` | Include AI-generated fix suggestions in the PR comment. |
+| `post-pr-comment` | `true` | Post AI security summary as a PR comment. |
+| `sarif-upload` | `true` | Upload SARIF results to GitHub Security tab. |
+| `cloud-provider` | `aws` | Primary cloud target for WAF control mapping: `aws`, `azure`, or `gcp`. |
+| `semgrep-rules` | `auto` | Custom Semgrep ruleset, e.g. `p/owasp-top-ten p/python`. |
+| `checkov-framework` | *(all)* | Checkov framework filter, e.g. `terraform,cloudformation`. |
+| `output-dir` | `.ssdlc-results` | Directory to write scan artefacts and reports. |
 
 ---
 
@@ -102,15 +130,15 @@ but signed `SSDL1.<payload>.<signature>` tokens are recommended for production.
 
 | Output | Description |
 |--------|-------------|
-| `findings-count` | Total findings |
-| `critical-count` | Critical findings |
-| `high-count` | High findings |
-| `medium-count` | Medium findings |
-| `low-count` | Low findings |
-| `ai-summary` | AI-generated summary (JSON) |
-| `threat-model` | STRIDE threat model (JSON) |
-| `passed` | `true` if gate passed |
-| `report-path` | Path to `findings.json` |
+| `findings-count` | Total findings across all scanners. |
+| `critical-count` | Critical severity findings. |
+| `high-count` | High severity findings. |
+| `medium-count` | Medium severity findings. |
+| `low-count` | Low severity findings. |
+| `ai-summary` | AI-generated plain-English security summary. |
+| `threat-model` | AI-generated STRIDE threat model (Enterprise only). |
+| `passed` | `true` if the security gate passed, `false` if findings blocked the build. |
+| `report-path` | Path to `findings.json` on the runner. |
 
 ---
 
@@ -121,7 +149,8 @@ but signed `SSDL1.<payload>.<signature>` tokens are recommended for production.
   id: security
   uses: subzone/ssdlc-action@v1
   with:
-    ai-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+    github-token: ${{ github.token }}
+    ai-provider: github
 
 - name: Check results
   run: |
@@ -138,6 +167,7 @@ permissions:
   contents:        read
   security-events: write   # SARIF upload
   pull-requests:   write   # PR comments
+  models:          read    # GitHub Models provider (free AI)
 ```
 
 ---
@@ -148,10 +178,10 @@ permissions:
 entrypoint.sh
 ├── Phase 1 — Secret Scan    (Gitleaks)
 ├── Phase 2 — SAST           (Semgrep)
-├── Phase 3 — SCA            (Trivy fs)
+├── Phase 3 — SCA            (pip-audit / npm audit)
 ├── Phase 4 — IaC Scan       (Checkov)
 ├── Phase 5 — Container      (Trivy image)  [Pro+]
-├── Phase 6 — AI Triage      (Claude/GPT)   [Pro+]
+├── Phase 6 — AI Triage      (GitHub Models / Claude / GPT)
 ├── Phase 7 — Threat Model   (STRIDE + AI)  [Enterprise]
 ├── Phase 8 — Security Gate  (policy check)
 └── Phase 9 — Reports        (SARIF, PR comment, Step Summary)
