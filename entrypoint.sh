@@ -267,7 +267,62 @@ if [[ -n "${ACTIONS_RUNTIME_TOKEN:-}" ]]; then
 fi
 
 # =============================================================================
-# PHASE 10 — SET OUTPUTS & EXIT
+# PHASE 10 — REPORT DORA EVENT TO PLATFORM (non-blocking)
+# =============================================================================
+if [[ -n "${SSDLC_API_URL:-}" ]] && [[ -n "${SSDLC_USER_ID:-}" ]]; then
+  log "Reporting DORA deployment event to platform..."
+
+  DORA_STATUS="success"
+  [[ "${PASSED}" == "false" ]] && DORA_STATUS="failure"
+
+  # GitHub provides head_commit.timestamp in the event payload; fall back to now
+  HEAD_COMMIT_TS="${GITHUB_EVENT_HEAD_COMMIT_TIMESTAMP:-}"
+  if [[ -z "${HEAD_COMMIT_TS}" ]] && [[ -f "${GITHUB_EVENT_PATH:-/dev/null}" ]]; then
+    HEAD_COMMIT_TS=$(jq -r '.head_commit.timestamp // empty' "${GITHUB_EVENT_PATH}" 2>/dev/null || true)
+  fi
+
+  DORA_PAYLOAD=$(jq -nc \
+    --arg user_id    "${SSDLC_USER_ID}" \
+    --arg owner      "${GITHUB_REPOSITORY_OWNER:-}" \
+    --arg repo       "${GITHUB_REPOSITORY##*/}" \
+    --arg run_id     "${GITHUB_RUN_ID:-0}" \
+    --arg wf_name    "${GITHUB_WORKFLOW:-}" \
+    --arg status     "${DORA_STATUS}" \
+    --arg deployed   "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --arg sha        "${GITHUB_SHA:-}" \
+    --arg hc_ts      "${HEAD_COMMIT_TS}" \
+    --arg env        "${ENVIRONMENT:-production}" \
+    '{
+      user_id: $user_id,
+      environment: $env,
+      run: {
+        id: ($run_id | tonumber),
+        name: $wf_name,
+        repository: $repo,
+        owner: $owner,
+        head_sha: $sha,
+        head_commit: { timestamp: $hc_ts },
+        conclusion: $status,
+        updated_at: $deployed
+      }
+    }')
+
+  AUTH_HEADER=""
+  [[ -n "${SSDLC_API_KEY:-}" ]] && AUTH_HEADER="-H \"Authorization: Bearer ${SSDLC_API_KEY}\""
+
+  if curl -sf --max-time 10 \
+      -X POST "${SSDLC_API_URL}/webhooks/github-scan" \
+      -H "Content-Type: application/json" \
+      ${AUTH_HEADER} \
+      -d "${DORA_PAYLOAD}" > /dev/null 2>&1; then
+    success "DORA event reported (run=${GITHUB_RUN_ID} status=${DORA_STATUS})"
+  else
+    warn "DORA event could not be delivered — metrics may be delayed"
+  fi
+fi
+
+# =============================================================================
+# PHASE 11 — SET OUTPUTS & EXIT
 # =============================================================================
 set_output "findings-count" "${TOTAL}"
 set_output "critical-count" "${CRITICAL}"

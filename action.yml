@@ -113,6 +113,27 @@ inputs:
     required: false
     default: 'aws'
 
+  # ── Platform Reporting (DORA metrics) ─────────────────────────────────────
+  ssdlc-api-url:
+    description: 'Platform API base URL for DORA event reporting (e.g. https://api.ssdlc.io)'
+    required: false
+    default: ''
+
+  ssdlc-api-key:
+    description: 'API key for authenticating with the SSDLC platform API'
+    required: false
+    default: ''
+
+  ssdlc-user-id:
+    description: 'User ID (UUID) to associate DORA events with the correct account'
+    required: false
+    default: ''
+
+  environment:
+    description: 'Deployment environment name for DORA tracking (e.g. dev, staging, production)'
+    required: false
+    default: 'production'
+
   # ── Advanced ───────────────────────────────────────────────────
   semgrep-rules:
     description: 'Custom Semgrep ruleset (e.g. p/owasp-top-ten). Defaults to auto.'
@@ -187,3 +208,7 @@ runs:
     CHECKOV_FRAMEWORK:    ${{ inputs.checkov-framework }}
     OUTPUT_DIR:           ${{ inputs.output-dir }}
     GITHUB_TOKEN:         ${{ inputs.github-token }}
+    SSDLC_API_URL:        ${{ inputs.ssdlc-api-url }}
+    SSDLC_API_KEY:        ${{ inputs.ssdlc-api-key }}
+    SSDLC_USER_ID:        ${{ inputs.ssdlc-user-id }}
+    ENVIRONMENT:          ${{ inputs.environment }}
