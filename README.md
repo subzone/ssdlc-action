@@ -52,7 +52,7 @@ jobs:
 |-------|------|:----:|:---:|:----------:|
 | Secret Scanning | Gitleaks | ✅ | ✅ | ✅ |
 | SAST | Semgrep | ✅ | ✅ | ✅ |
-| SCA (Dependencies) | pip-audit / npm audit | ✅ | ✅ | ✅ |
+| SCA (Dependencies) | Trivy | ✅ | ✅ | ✅ |
 | IaC Security | Checkov | ✅ | ✅ | ✅ |
 | Container Scanning | Trivy | ❌ | ✅ | ✅ |
 | AI Finding Triage | GitHub Models / Claude / GPT | ✅ | ✅ | ✅ |
@@ -77,14 +77,14 @@ jobs:
 | Input | Default | Description |
 |-------|---------|-------------|
 | `ai-api-key` | *(empty)* | Anthropic or OpenAI API key. Not needed when using `ai-provider: github`. |
-| `ai-provider` | `github` | AI provider: `github` (zero-cost), `anthropic`, or `openai`. |
+| `ai-provider` | `anthropic` | AI provider: `anthropic`, `openai`, or `github` (zero-cost, no external account needed). |
 | `ai-model` | `claude-sonnet-4-6` | Model name, e.g. `claude-sonnet-4-6` or `gpt-4o`. |
 | `license-key` | *(empty)* | Signed SSDL1 Pro/Enterprise licence token. |
 | `severity-threshold` | `high` | Minimum severity that fails the build: `critical`, `high`, `medium`, or `low`. |
 | `fail-on-findings` | `true` | Set to `false` to report findings without blocking the workflow. |
 | `enable-sast` | `true` | Run SAST scanning with Semgrep. |
 | `enable-secret-scan` | `true` | Run secret scanning with Gitleaks. |
-| `enable-sca` | `true` | Run Software Composition Analysis (pip-audit / npm audit). |
+| `enable-sca` | `true` | Run Software Composition Analysis with Trivy (dependency vulnerabilities). |
 | `enable-iac-scan` | `true` | Run IaC security scanning with Checkov. |
 | `enable-container-scan` | `false` | Run container image scan with Trivy. Requires `container-image`. |
 | `trivy-ignore-unfixed` | `false` | Ignore unfixed vulnerabilities in Trivy scans. |
@@ -178,7 +178,7 @@ permissions:
 entrypoint.sh
 ├── Phase 1 — Secret Scan    (Gitleaks)
 ├── Phase 2 — SAST           (Semgrep)
-├── Phase 3 — SCA            (pip-audit / npm audit)
+├── Phase 3 — SCA            (Trivy filesystem)
 ├── Phase 4 — IaC Scan       (Checkov)
 ├── Phase 5 — Container      (Trivy image)  [Pro+]
 ├── Phase 6 — AI Triage      (GitHub Models / Claude / GPT)

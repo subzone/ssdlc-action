@@ -266,16 +266,6 @@ if [[ -n "${ACTIONS_RUNTIME_TOKEN:-}" ]]; then
     || warn "Artifact upload failed — findings may not appear in the platform dashboard"
 fi
 
-# Dispatch findings to central API
-if [[ -n "${SSDLC_API_URL:-}" ]]; then
-  log "Dispatching final workflow analytics to central platform API..."
-  export PASSED="${PASSED}"
-  python3 /action/src/reporters/webhook.py \
-    --findings "${FINDINGS_FILE}" \
-    --api-url "${SSDLC_API_URL}" \
-    || warn "API Dispatch telemetry failed"
-fi
-
 # =============================================================================
 # PHASE 10 — REPORT DORA EVENT TO PLATFORM (non-blocking)
 # =============================================================================
