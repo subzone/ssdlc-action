@@ -37,3 +37,23 @@ CVE-2025-61729 exp:2026-09-01
 # HIGH — Go stdlib (related net/* / crypto/* group, filed 2025-Q4)
 # https://nvd.nist.gov/vuln/detail/CVE-2025-61730
 CVE-2025-61730 exp:2026-09-01
+
+# HIGH — Go net/url: Incorrect parsing of IPv6 host literals (filed 2026-03)
+# Affects gitleaks, trivy, and gh binaries (all built with Go <1.25.8/<1.26.1).
+# Fix: Go 1.25.8 / 1.26.1. Blocked on upstream tools rebuilding with patched Go.
+# https://nvd.nist.gov/vuln/detail/CVE-2026-25679
+CVE-2026-25679 exp:2026-09-01
+
+# CRITICAL — gRPC-Go: authorization bypass via missing leading slash in :path
+# Affects gh and trivy binaries. Server-side vulnerability only — gh/trivy use
+# gRPC as clients, not servers, so this is unexploitable in this context.
+# Fix: google.golang.org/grpc v1.79.3. Blocked on upstream tool releases.
+# https://nvd.nist.gov/vuln/detail/CVE-2026-33186
+CVE-2026-33186 exp:2026-09-01
+
+# HIGH — docker/cli: Privilege escalation via malicious plugin binaries (Windows)
+# Affects the trivy binary's vendored docker/cli dependency.
+# Windows-only; this action runs exclusively on Linux runners — not applicable.
+# Fix: docker/cli 29.2.0. Blocked on trivy updating its docker/cli dependency.
+# https://nvd.nist.gov/vuln/detail/CVE-2025-15558
+CVE-2025-15558 exp:2026-09-01

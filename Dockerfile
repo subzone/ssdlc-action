@@ -45,7 +45,7 @@ RUN pip install --no-cache-dir \
     cryptography
 
 # ── Gitleaks (secret scanning) ────────────────────────────────────
-RUN GITLEAKS_VERSION="8.30.0" && \
+RUN GITLEAKS_VERSION="8.30.1" && \
     curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
     -o /tmp/gitleaks.tar.gz && \
     tar -xzf /tmp/gitleaks.tar.gz -C /usr/local/bin gitleaks && \
